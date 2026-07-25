@@ -1,0 +1,6 @@
+{
+  "name": "Telegram Web",
+  "description": "Full-featured Telegram Web application with Google Authentication, end-to-end encrypted messaging, channels, groups, bots, stories, voice notes, stickers and custom themes.",
+  "requestFramePermissions": ["microphone", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
