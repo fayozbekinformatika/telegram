@@ -197,6 +197,15 @@ app.post('/api/ai/rewrite', async (req, res) => {
   }
 
   try {
+    if (!process.env.GEMINI_API_KEY) {
+      const styles = {
+        grammar: text + ' (Grammar checked)',
+        formal: text + ' (Formalized)',
+        short: text + ' (Shortened)',
+        zen: text + ' (Zen mode)'
+      };
+      return res.json({ rewrittenText: styles[style] || text });
+    }
     const ai = getAIClient();
     let promptInstruction = `Fix grammar and spelling for the following message while keeping original meaning and language: "${text}"`;
     if (style === 'formal') {

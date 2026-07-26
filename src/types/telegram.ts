@@ -14,6 +14,9 @@ export interface User {
   status?: UserStatus;
   lastSeen?: string;
   profileColor?: string;
+  birthday?: string;
+  personalChannel?: string;
+  automationEnabled?: boolean;
   emojiStatus?: string;
 }
 

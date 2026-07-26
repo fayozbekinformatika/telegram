@@ -68,262 +68,74 @@ export const initialStories: Story[] = [
 
 export const initialChats: Chat[] = [
   {
-    id: 'saved_messages',
-    name: 'Saved Messages',
-    type: 'private',
-    avatar: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=300&q=80',
-    unreadCount: 0,
-    isPinned: true,
-    description: 'Your cloud storage for notes, links, and forwarded messages.',
-    folderIds: ['all', 'personal'],
+    id: 'chat_sleepwalkers', name: 'The Sleepwalkers | SAT English', type: 'group', avatar: 'https://ui-avatars.com/api/?name=TE&background=0284c7&color=fff&font-size=0.4', unreadCount: 0, membersCount: 35, description: 'CRM group: Odd 09:00 SAT English\nDescription', folderIds: ['all', 'work'], lastMessage: { id: 'm8', chatId: 'chat_sleepwalkers', senderId: 'system', senderName: '', text: 'kallmeryan pinned "9.30 am English Room 10"', timestamp: '22:22', dateStr: 'Today', isOutgoing: false, isRead: true, isDelivered: true }
   },
   {
-    id: 'chat_ai_bot',
-    name: 'Gemini AI Assistant Bot',
-    type: 'bot',
-    avatar: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=300&q=80',
-    username: 'TelegramAI_Bot',
-    unreadCount: 1,
-    isPinned: true,
-    isVerified: true,
-    description: 'Official AI Bot powered by Google Gemini 2.5. Ask anything, rewrite text, generate code & summarize posts!',
-    folderIds: ['all', 'bots'],
+    id: 'chat_hitler', name: 'Hitler Adminstration | even days 9am SAT Math', type: 'group', avatar: 'https://ui-avatars.com/api/?name=HM&background=ec4899&color=fff&font-size=0.4', unreadCount: 0, membersCount: 42, description: 'SAT Math prep group', folderIds: ['all', 'work'], lastMessage: { id: 'm1', chatId: 'chat_hitler', senderId: 'user_deedo', senderName: 'deedo', text: '👍 Sticker', timestamp: '22:11', dateStr: 'Today', isOutgoing: false, isRead: true, isDelivered: true }
   },
   {
-    id: 'chat_tg_tips',
-    name: 'Telegram Tips & Features',
-    type: 'channel',
-    avatar: 'https://telegram.org/img/t_logo.png',
-    username: 'TelegramTips',
-    unreadCount: 3,
-    isPinned: true,
-    isVerified: true,
-    membersCount: 8450000,
-    description: 'Official channel for Telegram tips, updates and news in Uzbekistan & Worldwide.',
-    folderIds: ['all', 'channels'],
+    id: 'chat_feruzam', name: 'FERUZAM 😍', type: 'private', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', unreadCount: 0, folderIds: ['all', 'personal']
   },
   {
-    id: 'chat_tech_uz',
-    name: 'Uzbekistan IT & Developers Community',
-    type: 'group',
-    avatar: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=300&q=80',
-    username: 'UzITDevs',
-    unreadCount: 0,
-    membersCount: 42100,
-    description: 'Dasturchilar va IT sohasidagi mutaxassislar guruhi. Tajriba almashish va muhokamalar!',
-    folderIds: ['all', 'work'],
+    id: 'chat_saved', name: 'Saved Messages', type: 'private', avatar: 'https://ui-avatars.com/api/?name=SM&background=3b82f6&color=fff&font-size=0.4', unreadCount: 0, isPinned: true, description: 'Your cloud storage for notes, links, and forwarded messages.', folderIds: ['all', 'personal'], lastMessage: { id: 'm1', chatId: 'chat_saved', senderId: 'user_me', senderName: 'Me', text: 'Google AI Pro will support and accelerate your learning journey by providing...', timestamp: '16:51', dateStr: 'Today', isOutgoing: true, isRead: false, isDelivered: true }
   },
   {
-    id: 'chat_secret_alex',
-    name: '🔒 Secret Chat with Alex (MTProto 2.0)',
-    type: 'secret',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-    unreadCount: 0,
-    description: 'End-to-end encrypted secret chat. Messages self-destruct after timer.',
-    folderIds: ['all', 'personal'],
+    id: 'chat_satashkent_prep', name: 'SATashkent | College Prep Community', type: 'channel', avatar: 'https://ui-avatars.com/api/?name=SA&background=ef4444&color=fff&font-size=0.4', unreadCount: 0, membersCount: 15400, description: 'College Prep Community', folderIds: ['all', 'channels'], lastMessage: { id: 'm1', chatId: 'chat_satashkent_prep', senderId: 'system', senderName: 'SATashkent', text: '📣 Offline, Digital SAT Mock Exam in All Regions in Uzbekistan 🚨 ... Take Free ...', timestamp: '14:28', dateStr: 'Today', isOutgoing: false, isRead: true, isDelivered: true }
   },
   {
-    id: 'chat_durger_king',
-    name: '🍔 Durger King Mini App Bot',
-    type: 'bot',
-    avatar: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=300&q=80',
-    username: 'DurgerKingBot',
-    unreadCount: 0,
-    description: 'Order fast food directly inside Telegram Web with interactive Mini App!',
-    folderIds: ['all', 'bots'],
+    id: 'chat_telegram', name: 'Telegram', type: 'channel', avatar: 'https://telegram.org/img/t_logo.png', unreadCount: 0, isVerified: true, membersCount: 84500000, folderIds: ['all', 'channels'], lastMessage: { id: 'm1', chatId: 'chat_telegram', senderId: 'system', senderName: 'Telegram', text: 'Video message', mediaType: 'video', timestamp: 'Thu', dateStr: 'Thu', isOutgoing: false, isRead: true, isDelivered: true }
   },
   {
-    id: 'chat_support_bot',
-    name: '🛠️ Telegram Bug & Feature Bot',
-    type: 'bot',
-    avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80',
-    username: 'TelegramSupportBot',
-    unreadCount: 1,
-    isVerified: true,
-    description: 'Send bug reports and feature suggestions. Admin approval triggers automatic site deployment & update!',
-    folderIds: ['all', 'bots'],
+    id: 'chat_tg_tips', name: 'Telegram Tips', type: 'channel', avatar: 'https://ui-avatars.com/api/?name=TT&background=000&color=fff&font-size=0.4', unreadCount: 0, isVerified: true, membersCount: 8450000, folderIds: ['all', 'channels'], lastMessage: { id: 'm1', chatId: 'chat_tg_tips', senderId: 'system', senderName: 'Telegram Tips', text: '📱 Telegram Communities. Several groups, channels and bots can be linked ...', timestamp: 'Thu', dateStr: 'Thu', isOutgoing: false, isRead: true, isDelivered: true }
+  },
+  {
+    id: 'chat_izzatulloh', name: 'Izzatulloh', type: 'private', avatar: 'https://ui-avatars.com/api/?name=Iz&background=000&color=fff&font-size=0.4', unreadCount: 0, folderIds: ['all', 'personal'], lastMessage: { id: 'm1', chatId: 'chat_izzatulloh', senderId: 'user_me', senderName: 'Me', text: 'C4E4B5', timestamp: 'Tue', dateStr: 'Tue', isOutgoing: true, isRead: false, isDelivered: true }
+  },
+  {
+    id: 'chat_kallmeryan', name: 'kallmeryan', type: 'private', avatar: 'https://ui-avatars.com/api/?name=K&background=a855f7&color=fff&font-size=0.4', unreadCount: 0, folderIds: ['all', 'personal'], lastMessage: { id: 'm1', chatId: 'chat_kallmeryan', senderId: 'user_me', senderName: 'Me', text: 'ha', timestamp: '19.07.2026', dateStr: '19.07.2026', isOutgoing: true, isRead: false, isDelivered: true }
+  },
+  {
+    id: 'chat_satashkent_bot', name: 'SATashkent Student Assistant', type: 'bot', avatar: 'https://ui-avatars.com/api/?name=SA&background=ef4444&color=fff&font-size=0.4', unreadCount: 0, folderIds: ['all', 'bots'], lastMessage: { id: 'm1', chatId: 'chat_satashkent_bot', senderId: 'bot', senderName: 'SATashkent Student Assistant', text: 'Your Telegram account is not connected to your student profile ... Open', timestamp: '19.07.2026', dateStr: '19.07.2026', isOutgoing: false, isRead: true, isDelivered: true }
   },
 ];
 
 export const initialMessages: Record<string, Message[]> = {
-  saved_messages: [
-    {
-      id: 'm_sm_1',
-      chatId: 'saved_messages',
-      senderId: 'user_me',
-      senderName: 'You',
-      text: '📌 **Telegram Web Project Notes**\n- Integrated Google Auth login via Gmail\n- Server-side Gemini AI features\n- End-to-end encrypted secret chats & media player',
-      timestamp: '09:30',
-      dateStr: 'Today',
-      isOutgoing: true,
-      isRead: true,
-      isDelivered: true,
-      isPinned: true,
-    },
+  chat_sleepwalkers: [
+    { id: 'm1', chatId: 'chat_sleepwalkers', senderId: 'user_tg_tips', senderName: 'Sayida 🐚 ➡️ SATashkent Student Assistant', text: 'Good evening, everyone. This is an exam invit...\nEmm which one I should enter first?', timestamp: '22:13', dateStr: 'Today', isOutgoing: false, isRead: true, isDelivered: true, replyToMessageId: 'm0' },
+    { id: 'm2', chatId: 'chat_sleepwalkers', senderId: 'user_me', senderName: 'S', text: 'My math and english test kinda at the same time', timestamp: '22:14', dateStr: 'Today', isOutgoing: true, isRead: false, isDelivered: true },
+    { id: 'm3', chatId: 'chat_sleepwalkers', senderId: 'user_soliyev', senderName: 'Soliyev Javlon', text: 'енглищ ат 9;30\n🙏🏼🙏🏼', timestamp: '22:16', dateStr: 'Today', isOutgoing: false, isRead: true, isDelivered: true, replyToSenderName: 'Sayida 🐚' },
+    { id: 'm4', chatId: 'chat_sleepwalkers', senderId: 'user_other', senderName: 'Unknown', text: 'анд зериз но маз егзам завтра', timestamp: '22:17', dateStr: 'Today', isOutgoing: false, isRead: true, isDelivered: true },
+    { id: 'm5', chatId: 'chat_sleepwalkers', senderId: 'user_sayida', senderName: 'Sayida 🐚', text: 'Thanks\n⚡️🎊', timestamp: '22:18', dateStr: 'Today', isOutgoing: false, isRead: true, isDelivered: true, replyToSenderName: 'Soliyev Javlon' },
+    { id: 'm6', chatId: 'chat_sleepwalkers', senderId: 'user_me', senderName: 'S', text: 'Gosh can\'t they write it more obvious', timestamp: '22:19', dateStr: 'Today', isOutgoing: true, isRead: false, isDelivered: true, replyToSenderName: 'Soliyev Javlon' },
+    { id: 'm7', chatId: 'chat_sleepwalkers', senderId: 'user_kallmeryan', senderName: 'kallmeryan', text: '9.30 am English Room 10', timestamp: '22:21', dateStr: 'Today', isOutgoing: false, isRead: true, isDelivered: true, reactions: [{ emoji: '🐰', count: 5, users: [] }] },
+    { id: 'm8', chatId: 'chat_sleepwalkers', senderId: 'system', senderName: '', text: 'kallmeryan pinned "9.30 am English Room 10"', timestamp: '22:22', dateStr: 'Today', isOutgoing: false, isRead: true, isDelivered: true, isPinned: false },
   ],
-  chat_ai_bot: [
-    {
-      id: 'm_ai_1',
-      chatId: 'chat_ai_bot',
-      senderId: 'bot_ai',
-      senderName: 'Gemini AI Assistant Bot',
-      senderAvatar: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=300&q=80',
-      text: 'Assalomu alaykum! Men Telegram Google AI yordamchisiman. 🤖\n\nMenga xohlagan savolingizni berishingiz, matnlarni tahrirlatishingiz, kod yozdirishingiz yoki tarjima qildirishingiz mumkin!',
-      timestamp: '10:00',
-      dateStr: 'Today',
-      isOutgoing: false,
-      isRead: true,
-      isDelivered: true,
-      reactions: [
-        { emoji: '🔥', count: 5, users: ['user_me'] },
-        { emoji: '👍', count: 12, users: [] },
-      ],
-    },
+  chat_hitler: [
+    { id: 'm1', chatId: 'chat_hitler', senderId: 'user_deedo', senderName: 'deedo', text: '👍 Sticker', timestamp: '22:11', dateStr: 'Today', isOutgoing: false, isRead: true, isDelivered: true },
+  ],
+  chat_feruzam: [
+    { id: 'm1', chatId: 'chat_feruzam', senderId: 'user_me', senderName: '', text: '', timestamp: '', dateStr: '', isOutgoing: true, isRead: false, isDelivered: true }
+  ],
+  chat_saved: [
+    { id: 'm1', chatId: 'chat_saved', senderId: 'user_me', senderName: 'Me', text: 'Google AI Pro will support and accelerate your learning journey by providing...', timestamp: '16:51', dateStr: 'Today', isOutgoing: true, isRead: false, isDelivered: true },
+  ],
+  chat_satashkent_prep: [
+    { id: 'm1', chatId: 'chat_satashkent_prep', senderId: 'system', senderName: 'SATashkent', text: '📣 Offline, Digital SAT Mock Exam in All Regions in Uzbekistan 🚨 ... Take Free ...', timestamp: '14:28', dateStr: 'Today', isOutgoing: false, isRead: true, isDelivered: true },
+  ],
+  chat_telegram: [
+    { id: 'm1', chatId: 'chat_telegram', senderId: 'system', senderName: 'Telegram', text: 'Video message', mediaType: 'video', timestamp: 'Thu', dateStr: 'Thu', isOutgoing: false, isRead: true, isDelivered: true },
   ],
   chat_tg_tips: [
-    {
-      id: 'm_tips_1',
-      chatId: 'chat_tg_tips',
-      senderId: 'channel_tips',
-      senderName: 'Telegram Tips',
-      senderAvatar: 'https://telegram.org/img/t_logo.png',
-      text: '🔑 **Google Login & High Encryption**\n\nTelegram now supports seamless login with Gmail & Google OAuth! All cloud messages are stored with multi-layer server-client encryption while Secret Chats feature client-client Diffie-Hellman key exchange.',
-      timestamp: '08:15',
-      dateStr: 'Today',
-      isOutgoing: false,
-      isRead: false,
-      isDelivered: true,
-      viewsCount: 124500,
-      reactions: [
-        { emoji: '❤️', count: 320, users: ['user_me'] },
-        { emoji: '🚀', count: 840, users: [] },
-      ],
-    },
-    {
-      id: 'm_tips_2',
-      chatId: 'chat_tg_tips',
-      senderId: 'channel_tips',
-      senderName: 'Telegram Tips',
-      senderAvatar: 'https://telegram.org/img/t_logo.png',
-      text: '🎙 **Voice Notes & Audio Waveform**\n\nSend high quality voice notes, speed up playback to 1.5x or 2x, or record Video Messages directly with the camera icon.',
-      timestamp: '08:20',
-      dateStr: 'Today',
-      isOutgoing: false,
-      isRead: false,
-      isDelivered: true,
-      viewsCount: 98100,
-    },
-    {
-      id: 'm_tips_3',
-      chatId: 'chat_tg_tips',
-      senderId: 'channel_tips',
-      senderName: 'Telegram Tips',
-      senderAvatar: 'https://telegram.org/img/t_logo.png',
-      text: '📊 **Interactive Polls & Quizzes**\n\nCreate polls with multiple choices or quiz mode with instant answer explanations!',
-      timestamp: '08:25',
-      dateStr: 'Today',
-      isOutgoing: false,
-      isRead: false,
-      isDelivered: true,
-      viewsCount: 76000,
-      poll: {
-        id: 'poll_1',
-        question: 'Which feature of Telegram Web do you use the most?',
-        options: [
-          { id: 'opt_1', text: 'Voice Notes & Video Messages 🎙️', votes: 1420, voters: [] },
-          { id: 'opt_2', text: 'Google Gmail Login & Cloud Sync 🔐', votes: 2310, voters: ['user_me'] },
-          { id: 'opt_3', text: 'AI Assistant & Auto Summaries 🤖', votes: 3100, voters: [] },
-          { id: 'opt_4', text: 'Stickers & Interactive Reactions 🎨', votes: 980, voters: [] },
-        ],
-        isAnonymous: true,
-        allowsMultiple: false,
-      },
-    },
+    { id: 'm1', chatId: 'chat_tg_tips', senderId: 'system', senderName: 'Telegram Tips', text: '📱 Telegram Communities. Several groups, channels and bots can be linked ...', timestamp: 'Thu', dateStr: 'Thu', isOutgoing: false, isRead: true, isDelivered: true },
   ],
-  chat_tech_uz: [
-    {
-      id: 'm_uz_1',
-      chatId: 'chat_tech_uz',
-      senderId: 'user_jamshid',
-      senderName: 'Jamshid Programmer',
-      senderAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
-      text: 'Salom hammaga! Telegram Web loyihasiga Google autentifikatsiyasi juda zo\'r integratsiya qilinibdi. Server tezligi va interfeys dizayni a\'lo darajada! 🚀',
-      timestamp: '09:12',
-      dateStr: 'Today',
-      isOutgoing: false,
-      isRead: true,
-      isDelivered: true,
-      reactions: [{ emoji: '💯', count: 8, users: ['user_me'] }],
-    },
+  chat_izzatulloh: [
+    { id: 'm1', chatId: 'chat_izzatulloh', senderId: 'user_me', senderName: 'Me', text: 'C4E4B5', timestamp: 'Tue', dateStr: 'Tue', isOutgoing: true, isRead: false, isDelivered: true },
   ],
-  chat_secret_alex: [
-    {
-      id: 'm_sec_1',
-      chatId: 'chat_secret_alex',
-      senderId: 'user_alex',
-      senderName: 'Alex',
-      senderAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-      text: '🔒 Encryption key verified: 🥑 🚀 💎 ⚡\nThis secret chat uses MTProto 2.0 end-to-end encryption.',
-      timestamp: '07:45',
-      dateStr: 'Today',
-      isOutgoing: false,
-      isRead: true,
-      isDelivered: true,
-    },
+  chat_kallmeryan: [
+    { id: 'm1', chatId: 'chat_kallmeryan', senderId: 'user_me', senderName: 'Me', text: 'ha', timestamp: '19.07.2026', dateStr: '19.07.2026', isOutgoing: true, isRead: false, isDelivered: true },
   ],
-  chat_durger_king: [
-    {
-      id: 'm_dk_1',
-      chatId: 'chat_durger_king',
-      senderId: 'bot_dk',
-      senderName: 'Durger King Bot',
-      senderAvatar: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=300&q=80',
-      text: 'Welcome to Durger King! Tap the button below to launch the Mini App and order fresh burgers 🍔',
-      timestamp: 'Yesterday',
-      dateStr: 'Yesterday',
-      isOutgoing: false,
-      isRead: true,
-      isDelivered: true,
-    },
-  ],
-  chat_support_bot: [
-    {
-      id: 'm_sup_1',
-      chatId: 'chat_support_bot',
-      senderId: 'bot_support',
-      senderName: 'Telegram Bug & Feature Bot',
-      senderAvatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80',
-      text: 'Assalomu alaykum! 🛠️ Telegram Taklif va Xatolar Boti xizmatingizda!\n\nAgar siz Telegram ilovasida biror xatolik topsangiz yoki yangi imkoniyat qo\'shish bo\'yicha taklifingiz bo\'lsa, matn qilib yuboring.\n\n✨ **Siz yuborgan taklif Adminga yuboriladi va Admin "Tasdiqlash" tugmasini bosishi bilan ilova avtomatik ravishda yangilanadi!**',
-      timestamp: '10:05',
-      dateStr: 'Today',
-      isOutgoing: false,
-      isRead: true,
-      isDelivered: true,
-    },
+  chat_satashkent_bot: [
+    { id: 'm1', chatId: 'chat_satashkent_bot', senderId: 'bot', senderName: 'SATashkent Student Assistant', text: 'Your Telegram account is not connected to your student profile ... Open', timestamp: '19.07.2026', dateStr: '19.07.2026', isOutgoing: false, isRead: true, isDelivered: true },
   ],
 };
 
-export const sampleStickerPacks: StickerPack[] = [
-  {
-    id: 'pack_duck',
-    name: 'Duck Animated',
-    thumbnail: '🦆',
-    stickers: [
-      { id: 's1', url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f986/512.webp', emoji: '🦆' },
-      { id: 's2', url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f525/512.webp', emoji: '🔥' },
-      { id: 's3', url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f680/512.webp', emoji: '🚀' },
-      { id: 's4', url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f44d/512.webp', emoji: '👍' },
-    ],
-  },
-  {
-    id: 'pack_pepe',
-    name: 'Telegram Pepe & Animals',
-    thumbnail: '🐸',
-    stickers: [
-      { id: 's5', url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f430/512.webp', emoji: '🐰' },
-      { id: 's6', url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f973/512.webp', emoji: '🥳' },
-      { id: 's7', url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f60d/512.webp', emoji: '😍' },
-      { id: 's8', url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f496/512.webp', emoji: '💖' },
-    ],
-  },
-];

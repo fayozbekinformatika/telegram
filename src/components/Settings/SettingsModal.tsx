@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { X, User as UserIcon, ShieldCheck, Lock, Palette, Globe, Check, Star } from 'lucide-react';
+import { 
+  User as UserIcon, Bell, Lock, MessageCircle, Folder, Settings2, 
+  Video, Battery, Languages, Star, Briefcase, Gift, HelpCircle, 
+  Search, MoreVertical, X, Check, ScanLine, CreditCard
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTelegram } from '../../context/TelegramContext';
-import { ThemeMode } from '../../types/telegram';
+import { useToast } from '../../context/ToastContext';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -15,159 +19,143 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   onOpenPasscodeModal,
 }) => {
-  const { user, updateUserProfile, loginWithGoogleOAuth } = useAuth();
-  const { theme, setTheme } = useTelegram();
-
-  const [name, setName] = useState(user?.name || '');
-  const [username, setUsername] = useState(user?.username || '');
-  const [bio, setBio] = useState(user?.bio || '');
+  const { user } = useAuth();
+  const { theme } = useTelegram();
+  const { showToast } = useToast();
 
   if (!isOpen) return null;
 
-  const handleSave = () => {
-    updateUserProfile({ name, username, bio });
-    onClose();
-  };
+  const isLight = theme === 'light';
+  const bgModal = isLight ? 'bg-white text-slate-800' : 'bg-[#17212b] text-white';
+  const bgHeader = isLight ? 'bg-blue-500 text-white' : 'bg-[#17212b] text-white';
+  const borderCol = isLight ? 'border-slate-100' : 'border-black/20';
+  const textSub = isLight ? 'text-slate-500' : 'text-gray-400';
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-[#17212b] text-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-gray-800 flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-[#0e1621]">
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <span>⚙️</span> Telegram Settings
-          </h2>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-white rounded-full">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-6">
-          {/* User Card */}
-          <div className="flex items-center gap-4 bg-[#0e1621] p-4 rounded-2xl border border-gray-800">
-            <img
-              src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'}
-              alt={user?.name}
-              className="w-16 h-16 rounded-full object-cover border-2 border-sky-500 shadow-md"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h3 className="text-base font-bold text-white truncate">{user?.name}</h3>
-                <Star className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
-              </div>
-              <p className="text-xs text-sky-400 font-medium">@{user?.username}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{user?.email}</p>
-            </div>
-          </div>
-
-          {/* Google Auth Status Card */}
-          <div className="bg-[#0e1621]/80 p-4 rounded-2xl border border-sky-500/30 flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="text-xs font-bold text-sky-400 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" /> Google Authentication
-              </span>
-              <p className="text-xs text-gray-300">Gmail: {user?.email || 'Authenticated'}</p>
-            </div>
-            <button
-              onClick={loginWithGoogleOAuth}
-              className="px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-white rounded-xl text-xs font-bold shadow-xs"
-            >
-              Re-Authenticate
-            </button>
-          </div>
-
-          {/* Edit Profile Fields */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Profile Information</h4>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Display Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-[#0e1621] text-xs text-white p-3 rounded-xl border border-gray-700 focus:outline-none focus:border-sky-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-[#0e1621] text-xs text-white p-3 rounded-xl border border-gray-700 focus:outline-none focus:border-sky-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Bio</label>
-              <textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                rows={2}
-                className="w-full bg-[#0e1621] text-xs text-white p-3 rounded-xl border border-gray-700 focus:outline-none focus:border-sky-500 resize-none"
-              />
-            </div>
-          </div>
-
-          {/* Theme Selector */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Palette className="w-4 h-4 text-sky-400" /> App Theme
-            </h4>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'dark', label: 'Dark Classic', bg: 'bg-[#0e1621]' },
-                { id: 'night', label: 'Night Blue', bg: 'bg-[#17212b]' },
-                { id: 'light', label: 'Day Light', bg: 'bg-slate-100 text-gray-900' },
-                { id: 'green', label: 'Matrix Green', bg: 'bg-emerald-950' },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTheme(t.id as ThemeMode)}
-                  className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${t.bg} ${
-                    theme === t.id ? 'border-sky-500 ring-2 ring-sky-500/30' : 'border-gray-700'
-                  }`}
-                >
-                  <span>{t.label}</span>
-                  {theme === t.id && <Check className="w-4 h-4 text-sky-400" />}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Security & Passcode */}
-          <div className="bg-[#0e1621] p-4 rounded-2xl border border-gray-800 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      
+      <div className={`relative w-full max-w-[340px] h-[600px] max-h-[85vh] flex flex-col rounded-xl shadow-2xl z-10 ${bgModal} animate-in fade-in zoom-in-95`}>
+        
+        {/* Header Profile */}
+        <div className={`p-4 ${bgHeader} border-b ${isLight ? 'border-blue-600' : 'border-black/20'} flex flex-col`}>
+          <div className="flex justify-between items-start mb-2">
+            <h2 className="text-[17px] font-medium">Settings</h2>
             <div className="flex items-center gap-3">
-              <Lock className="w-5 h-5 text-purple-400" />
-              <div>
-                <h5 className="text-xs font-bold text-white">Passcode Lock</h5>
-                <p className="text-[11px] text-gray-400">Lock application with local 4-digit PIN</p>
-              </div>
+              <button onClick={() => showToast("Search settings...")} className="hover:bg-black/10 p-1.5 rounded-full transition-colors"><Search className="w-5 h-5" /></button>
+              <button onClick={() => showToast("More options")} className="hover:bg-black/10 p-1.5 rounded-full transition-colors"><MoreVertical className="w-5 h-5" /></button>
+              <button onClick={onClose} className="hover:bg-black/10 p-1.5 rounded-full transition-colors"><X className="w-5 h-5" /></button>
             </div>
-            <button
-              onClick={onOpenPasscodeModal}
-              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs text-purple-300 font-bold rounded-xl"
-            >
-              Configure
+          </div>
+          
+          <div className="flex items-center mt-2">
+            <div className="w-14 h-14 rounded-full overflow-hidden bg-blue-600 flex items-center justify-center text-xl font-bold mr-4">
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                (user?.name || 'T')[0]
+              )}
+            </div>
+            <div className="flex-1">
+              <h3 className="font-medium text-[16px]">{user?.name || 'Fayozbek Yusubjonov'}</h3>
+              <p className="text-[13px] opacity-80">{user?.phone || '+998 77 400 11 25'}</p>
+              <p className="text-[13px] opacity-80">@{user?.username || 'fayozchek'}</p>
+            </div>
+            <button onClick={() => showToast("Scan QR Code")} className="p-2 hover:bg-black/10 rounded-full transition-colors self-start">
+               <ScanLine className="w-5 h-5 opacity-70" />
             </button>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-800 flex justify-end gap-2 bg-[#0e1621]">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-gray-400 hover:text-white rounded-xl hover:bg-gray-800"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-5 py-2 text-xs font-bold bg-sky-500 hover:bg-sky-400 text-white rounded-xl"
-          >
-            Save Changes
-          </button>
+        
+        {/* Settings List */}
+        <div className="flex-1 overflow-y-auto no-scrollbar py-2">
+          
+          {/* Group 1 */}
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <UserIcon className={`w-5 h-5 mr-4 ${textSub}`} />
+            <span className="text-[15px] flex-1">My Account</span>
+          </div>
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <Bell className={`w-5 h-5 mr-4 ${textSub}`} />
+            <span className="text-[15px] flex-1">Notifications and Sounds</span>
+          </div>
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <Lock className={`w-5 h-5 mr-4 ${textSub}`} />
+            <span className="text-[15px] flex-1">Privacy and Security</span>
+          </div>
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <MessageCircle className={`w-5 h-5 mr-4 ${textSub}`} />
+            <span className="text-[15px] flex-1">Chat Settings</span>
+          </div>
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <Folder className={`w-5 h-5 mr-4 ${textSub}`} />
+            <span className="text-[15px] flex-1">Folders</span>
+          </div>
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <Settings2 className={`w-5 h-5 mr-4 ${textSub}`} />
+            <span className="text-[15px] flex-1">Advanced</span>
+          </div>
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <Video className={`w-5 h-5 mr-4 ${textSub}`} />
+            <span className="text-[15px] flex-1">Speakers and Camera</span>
+          </div>
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <Battery className={`w-5 h-5 mr-4 ${textSub}`} />
+            <span className="text-[15px] flex-1">Battery and Animations</span>
+          </div>
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <Languages className={`w-5 h-5 mr-4 ${textSub}`} />
+            <span className="text-[15px] flex-1">Language</span>
+            <span className="text-[15px] text-sky-500">English</span>
+          </div>
+          
+          <div className={`my-2 border-t ${borderCol}`} />
+          
+          <div className="px-5 py-3 flex items-center justify-between">
+            <span className="text-[15px] flex-1">Default interface scale</span>
+            <div className="w-8 h-4 rounded-full relative transition-colors bg-sky-500">
+              <div className="absolute top-0.5 bottom-0.5 w-3 bg-white rounded-full transition-transform translate-x-4" />
+            </div>
+          </div>
+          <div className="px-5 pb-3">
+             <div className="relative w-full h-1 bg-black/10 rounded-full mt-2">
+                <div className="absolute left-0 top-0 bottom-0 bg-sky-500 w-[60%] rounded-full"></div>
+                <div className="absolute left-[60%] top-1/2 -translate-y-1/2 -ml-2 w-4 h-4 bg-sky-500 rounded-full border-2 border-white shadow"></div>
+             </div>
+             <div className="flex justify-end mt-1">
+               <span className={`text-[13px] ${textSub}`}>125%</span>
+             </div>
+          </div>
+          
+          <div className={`my-2 border-t ${borderCol}`} />
+          
+          {/* Group 3 */}
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <Star className="w-5 h-5 mr-4 text-purple-500" />
+            <span className="text-[15px] flex-1">Telegram Premium</span>
+          </div>
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <Star className="w-5 h-5 mr-4 text-yellow-500" />
+            <span className="text-[15px] flex-1">My Stars</span>
+          </div>
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <Briefcase className={`w-5 h-5 mr-4 ${textSub}`} />
+            <span className="text-[15px] flex-1">Telegram Business</span>
+          </div>
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <Gift className={`w-5 h-5 mr-4 ${textSub}`} />
+            <span className="text-[15px] flex-1">Send a Gift</span>
+          </div>
+          
+          <div className={`my-2 border-t ${borderCol}`} />
+          
+          {/* Group 4 */}
+          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+            <HelpCircle className={`w-5 h-5 mr-4 ${textSub}`} />
+            <span className="text-[15px] flex-1">Telegram FAQ</span>
+          </div>
         </div>
+        
       </div>
     </div>
   );

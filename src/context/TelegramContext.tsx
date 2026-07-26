@@ -22,6 +22,9 @@ interface TelegramContextType {
   deleteMessage: (chatId: string, messageId: string, forEveryone?: boolean) => void;
   pinMessage: (chatId: string, messageId: string) => void;
   createNewChat: (name: string, type: Chat['type'], username?: string, description?: string) => Chat;
+  clearHistory: (chatId: string) => void;
+  leaveChat: (chatId: string) => void;
+  toggleMute: (chatId: string) => void;
   
   // Folders & Search
   folders: ChatFolder[];
@@ -29,6 +32,8 @@ interface TelegramContextType {
   setActiveFolderId: (id: string) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  searchInChatMode: boolean;
+  setSearchInChatMode: (val: boolean) => void;
 
   // Stories
   stories: Story[];
@@ -63,7 +68,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return saved ? JSON.parse(saved) : initialChats;
   });
 
-  const [activeChatId, setActiveChatId] = useState<string | null>('chat_ai_bot');
+  const [activeChatId, setActiveChatId] = useState<string | null>('chat_sleepwalkers');
   const [messages, setMessages] = useState<Record<string, Message[]>>(() => {
     const saved = localStorage.getItem('tg_messages');
     return saved ? JSON.parse(saved) : initialMessages;
@@ -75,6 +80,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [folders] = useState<ChatFolder[]>(initialFolders);
   const [activeFolderId, setActiveFolderId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchInChatMode, setSearchInChatMode] = useState<boolean>(false);
 
   const [theme, setTheme] = useState<ThemeMode>(() => {
     return (localStorage.getItem('tg_theme') as ThemeMode) || 'light';
@@ -171,63 +177,24 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       )
     );
 
-    // Update message read status after short delay (Telegram 2 ticks / galochka simulation)
-    setTimeout(() => {
-      setMessages((prev) => {
-        const chatMsgs = prev[chatId];
-        if (!chatMsgs) return prev;
-        return {
-          ...prev,
-          [chatId]: chatMsgs.map((m) => (m.id === newMsg.id ? { ...m, isRead: true } : m)),
-        };
-      });
-      setChats((prev) =>
-        prev.map((c) =>
-          c.id === chatId && c.lastMessage?.id === newMsg.id
-            ? { ...c, lastMessage: { ...c.lastMessage, isRead: true } }
-            : c
-        )
-      );
-    }, 1200);
 
-    // AI Bot auto-response handling
+    // AI Bot Simulation
     if (chatId === 'chat_ai_bot' && text.trim()) {
       try {
-        const response = await fetch('/api/ai/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: text }),
-        });
-        
-        let aiText = 'Assalomu alaykum! Men Telegram AI Botiman. Savolingiz uchun rahmat!';
-        if (response.ok) {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const data = await response.json();
-            aiText = data.text || aiText;
-          } else {
-            aiText = await response.text();
-          }
-        } else {
-          console.warn('AI Bot response non-OK status:', response.status);
-        }
-        
         const aiTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const aiMsg: Message = {
-          id: `m_ai_resp_${Date.now()}`,
+          id: `m_ai_${Date.now()}`,
           chatId: 'chat_ai_bot',
-          senderId: 'bot_ai',
-          senderName: 'Gemini AI Assistant Bot',
-          senderAvatar: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=300&q=80',
-          text: aiText,
+          senderId: 'bot',
+          senderName: 'AI Bot',
+          senderAvatar: 'https://ui-avatars.com/api/?name=AI&background=6366f1&color=fff&font-size=0.4',
+          text: 'AI response to: ' + text,
           timestamp: aiTime,
           dateStr: 'Today',
           isOutgoing: false,
           isRead: true,
           isDelivered: true,
-          reactions: [{ emoji: '⚡', count: 1, users: [] }],
         };
-
         setTimeout(() => {
           setMessages((prev) => ({
             ...prev,
@@ -268,13 +235,12 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         id: `m_admin_notif_${Date.now()}`,
         chatId: 'saved_messages',
         senderId: 'bot_support',
-        senderName: '🛠️ Admin Bot (Auto-Deploy Control)',
-        senderAvatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80',
-        text: `📩 **YANGI TAKLIF / BUG REPORT KELDI:**\n\n👤 **Foydalanuvchi:** @${user?.username || 'fayozchek'}\n💬 **Tafsilot:** "${text}"\n\n⚙️ **ADMIN HARAKATI:** Siz ushbu taklifni ma'qullasangiz, "Tasdiqlash & Saytni Yangilash" buyrug'i beriladi va ilovangiz yangi versiyaga yangilanadi!`,
+        senderName: 'System',
+        text: `🚀 **Yangi taklif / xatolik kelib tushdi!**\n\n👤 **Foydalanuvchi:** ${user?.name || 'Noma\'lum'} (@${user?.username || 'user'})\n💬 **Matn:** "${text}"\n⏱ **Vaqt:** ${supTime}`,
         timestamp: supTime,
         dateStr: 'Today',
         isOutgoing: false,
-        isRead: false,
+        isRead: true,
         isDelivered: true,
       };
 
@@ -284,7 +250,6 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           chat_support_bot: [...(prev.chat_support_bot || []), botReplyMsg],
           saved_messages: [...(prev.saved_messages || []), adminNotificationMsg],
         }));
-
         setChats((prev) =>
           prev.map((c) => {
             if (c.id === 'chat_support_bot') return { ...c, lastMessage: botReplyMsg };
@@ -292,7 +257,6 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             return c;
           })
         );
-
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
       }, 700);
     }
@@ -310,69 +274,61 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setMessages((prev) => {
       const chatMsgs = prev[chatId] || [];
-      const updated = chatMsgs.map((msg) => {
-        if (msg.id !== messageId) return msg;
-
-        const currentReactions = msg.reactions ? [...msg.reactions] : [];
-        const existing = currentReactions.find((r) => r.emoji === emoji);
-
-        if (existing) {
-          const userId = user?.id || 'user_me';
-          const hasVoted = existing.users.includes(userId);
-          if (hasVoted) {
-            existing.count = Math.max(0, existing.count - 1);
-            existing.users = existing.users.filter((id) => id !== userId);
-          } else {
-            existing.count += 1;
-            existing.users.push(userId);
+      return {
+        ...prev,
+        [chatId]: chatMsgs.map((m) => {
+          if (m.id === messageId) {
+            const reactions = m.reactions || [];
+            const existing = reactions.find((r) => r.emoji === emoji);
+            if (existing) {
+              return {
+                ...m,
+                reactions: reactions.map((r) =>
+                  r.emoji === emoji ? { ...r, count: r.count + 1 } : r
+                ),
+              };
+            }
+            return {
+              ...m,
+              reactions: [...reactions, { emoji, count: 1, users: [user?.id || 'me'] }],
+            };
           }
-        } else {
-          currentReactions.push({
-            emoji,
-            count: 1,
-            users: [user?.id || 'user_me'],
-          });
-        }
-
-        return { ...msg, reactions: currentReactions.filter((r) => r.count > 0) };
-      });
-      return { ...prev, [chatId]: updated };
+          return m;
+        }),
+      };
     });
   };
 
   const votePoll = (chatId: string, messageId: string, optionId: string) => {
     setMessages((prev) => {
       const chatMsgs = prev[chatId] || [];
-      const updated = chatMsgs.map((msg) => {
-        if (msg.id !== messageId || !msg.poll) return msg;
+      return {
+        ...prev,
+        [chatId]: chatMsgs.map((m) => {
+          if (m.id === messageId && m.poll) {
+            const alreadyVoted = m.poll.options.some((o) => o.voters?.includes(user?.id || 'me'));
+            if (alreadyVoted && !m.poll.multipleAnswers) return m;
 
-        const userId = user?.id || 'user_me';
-        const newOptions = msg.poll.options.map((opt) => {
-          if (opt.id === optionId) {
-            const hasVoted = opt.voters.includes(userId);
             return {
-              ...opt,
-              votes: hasVoted ? opt.votes - 1 : opt.votes + 1,
-              voters: hasVoted ? opt.voters.filter((id) => id !== userId) : [...opt.voters, userId],
-            };
-          } else if (!msg.poll?.allowsMultiple) {
-            // Remove from other options if single vote poll
-            return {
-              ...opt,
-              votes: opt.voters.includes(userId) ? opt.votes - 1 : opt.votes,
-              voters: opt.voters.filter((id) => id !== userId),
+              ...m,
+              poll: {
+                ...m.poll,
+                totalVoters: (m.poll.totalVoters || 0) + 1,
+                options: m.poll.options.map((o) =>
+                  o.id === optionId
+                    ? { ...o, votes: o.votes + 1, voters: [...(o.voters || []), user?.id || 'me'] }
+                    : o
+                ),
+              },
             };
           }
-          return opt;
-        });
-
-        return { ...msg, poll: { ...msg.poll, options: newOptions } };
-      });
-      return { ...prev, [chatId]: updated };
+          return m;
+        }),
+      };
     });
   };
 
-  const deleteMessage = (chatId: string, messageId: string) => {
+  const deleteMessage = (chatId: string, messageId: string, forEveryone?: boolean) => {
     setMessages((prev) => ({
       ...prev,
       [chatId]: (prev[chatId] || []).filter((m) => m.id !== messageId),
@@ -386,6 +342,26 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }));
   };
 
+  const clearHistory = (chatId: string) => {
+    setMessages((prev) => ({ ...prev, [chatId]: [] }));
+  };
+
+  const toggleMute = (chatId: string) => {
+    setChats((prev) =>
+      prev.map((c) => (c.id === chatId ? { ...c, isMuted: !c.isMuted } : c))
+    );
+  };
+
+  const leaveChat = (chatId: string) => {
+    setChats((prev) => prev.filter((c) => c.id !== chatId));
+    setMessages((prev) => {
+      const newMsgs = { ...prev };
+      delete newMsgs[chatId];
+      return newMsgs;
+    });
+    if (activeChatId === chatId) setActiveChatId(null);
+  };
+
   const createNewChat = (name: string, type: Chat['type'], username?: string, description?: string): Chat => {
     const newChat: Chat = {
       id: `chat_${Date.now()}`,
@@ -394,10 +370,10 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${name}`,
       username: username || name.toLowerCase().replace(/\s+/g, '_'),
       unreadCount: 0,
+      membersCount: type === 'group' || type === 'channel' ? 1 : undefined,
       description,
       folderIds: ['all'],
     };
-
     setChats((prev) => [newChat, ...prev]);
     setMessages((prev) => ({ ...prev, [newChat.id]: [] }));
     setActiveChatId(newChat.id);
@@ -431,7 +407,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const data = await res.json();
       return data.rewrittenText || text;
     } catch (err) {
-      console.error('AI Rewrite error:', err);
+      console.error('Failed to rewrite message:', err);
       return text;
     }
   };
@@ -449,11 +425,16 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         deleteMessage,
         pinMessage,
         createNewChat,
+        clearHistory,
+        leaveChat,
+        toggleMute,
         folders,
         activeFolderId,
         setActiveFolderId,
         searchQuery,
         setSearchQuery,
+        searchInChatMode,
+        setSearchInChatMode,
         stories,
         addStory,
         activeStoryIndex,
@@ -462,8 +443,6 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setTheme,
         chatWallpaper,
         setChatWallpaper,
-        fontSize,
-        setFontSize,
         activeCall,
         startCall,
         endCall,
@@ -476,7 +455,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 };
 
 export const useTelegram = () => {
-  const context = useContext(TelegramContext);
+  const context = React.useContext(TelegramContext);
   if (!context) {
     throw new Error('useTelegram must be used within a TelegramProvider');
   }

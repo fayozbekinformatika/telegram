@@ -125,7 +125,7 @@ export const ChatList: React.FC = () => {
                         : 'text-gray-400'
                     }`}
                   >
-                    {chat.lastMessage?.timestamp || '09:00'}
+                    {chat.lastMessage?.timestamp || ''}
                   </span>
                 </div>
 
@@ -159,7 +159,7 @@ export const ChatList: React.FC = () => {
                         {chat.lastMessage.text || (chat.lastMessage.mediaType ? `[${chat.lastMessage.mediaType}]` : '')}
                       </>
                     ) : (
-                      chat.description || 'No messages yet'
+                      chat.description || ''
                     )}
                   </p>
 

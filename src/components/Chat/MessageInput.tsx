@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Send,
   Paperclip,
@@ -45,6 +45,59 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const recordingTimerRef = useRef<any>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const isGlobalPointerDown = useRef(false);
+  const clickTimeoutRef = useRef<any>(null);
+  const isHeldDownRef = useRef<boolean>(false);
+
+  const handleRecordDown = (e: React.PointerEvent) => {
+    isHeldDownRef.current = true;
+    clickTimeoutRef.current = setTimeout(() => {
+      clickTimeoutRef.current = null;
+      if (isHeldDownRef.current) {
+        startRecording();
+      }
+    }, 250);
+  };
+
+  const handleRecordUp = (e: React.PointerEvent) => {
+    isHeldDownRef.current = false;
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+      setRecordMode(prev => prev === 'voice' ? 'video' : 'voice');
+    }
+  };
+
+  const handleRecordLeave = (e: React.PointerEvent) => {
+    isHeldDownRef.current = false;
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    const handleGlobalPointerUp = (e: PointerEvent) => {
+      isGlobalPointerDown.current = false;
+      if (isRecording) {
+        const target = e.target as HTMLElement;
+        if (target.closest('button[data-action="cancel"]')) return;
+        
+        if (recordingSeconds >= 1) {
+          stopAndSendRecording();
+        } else {
+          cancelRecording();
+        }
+      }
+    };
+    
+    if (isRecording) {
+      window.addEventListener('pointerup', handleGlobalPointerUp);
+    }
+    return () => {
+      window.removeEventListener('pointerup', handleGlobalPointerUp);
+    };
+  }, [isRecording, recordingSeconds]);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
@@ -467,6 +520,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
           <div className="flex items-center gap-2">
             <button
+              data-action="cancel"
               onClick={cancelRecording}
               className={`text-xs px-3 py-1.5 rounded-xl ${
                 isLight ? 'text-slate-500 hover:bg-slate-200' : 'text-gray-400 hover:bg-gray-800'
@@ -535,15 +589,22 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             <div className="relative group flex items-center">
               {/* Primary Telegram Record Button */}
               <button
-                onClick={startRecording}
-                title="Ovozli xabar yozishni boshlash"
-                className={`p-2 transition-colors ${
+                onPointerDown={handleRecordDown}
+                onPointerUp={handleRecordUp}
+                onPointerLeave={handleRecordLeave}
+                onContextMenu={(e) => e.preventDefault()}
+                title={recordMode === 'voice' ? "Ovozli xabar yozish" : "Video xabar yozish"}
+                className={`p-2 transition-colors touch-none ${
                   isLight
                     ? 'text-slate-500 hover:text-blue-600'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                <Mic className="w-6 h-6 p-0.5" />
+                {recordMode === 'voice' ? (
+                  <Mic className="w-6 h-6 p-0.5" />
+                ) : (
+                  <Video className="w-6 h-6 p-0.5" />
+                )}
               </button>
             </div>
           )}

@@ -38,6 +38,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   const [copiedCode, setCopiedCode] = useState(false);
   const [showQuickReactions, setShowQuickReactions] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
   const [showImageLightbox, setShowImageLightbox] = useState(false);
 
   const isOutgoing = message.isOutgoing;
@@ -270,10 +271,17 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                   src={message.mediaUrl || 'https://assets.mixkit.co/videos/preview/mixkit-womans-feet-splashing-in-the-water-41221-large.mp4'}
                   autoPlay
                   loop
-                  muted={!isPlayingVoice}
+                  muted={true}
                   playsInline
                   className="w-full h-full object-cover rounded-full"
+                  onTimeUpdate={(e) => {
+                    const target = e.target as HTMLVideoElement;
+                    if (target.duration) {
+                      setVideoProgress(target.currentTime / target.duration);
+                    }
+                  }}
                 />
+                
 
                 {/* Duration Badge */}
                 <div className="absolute bottom-3 right-5 bg-black/70 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-md border border-white/20 shadow-md">
@@ -554,9 +562,15 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 src={message.mediaUrl || 'https://assets.mixkit.co/videos/preview/mixkit-womans-feet-splashing-in-the-water-41221-large.mp4'}
                 autoPlay
                 loop
-                muted={!isPlayingVoice}
+                muted={false}
                 playsInline
                 className="w-full h-full object-cover rounded-full"
+                onTimeUpdate={(e) => {
+                  const target = e.target as HTMLVideoElement;
+                  if (target.duration) {
+                    setVideoProgress(target.currentTime / target.duration);
+                  }
+                }}
               />
 
               {/* Progress Ring */}
@@ -570,22 +584,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                   stroke="#38bdf8"
                   strokeWidth="2.5"
                   strokeDasharray="301.59"
-                  strokeDashoffset={301.59 * 0.2}
+                  strokeDashoffset={301.59 - (301.59 * videoProgress)}
                   strokeLinecap="round"
                 />
               </svg>
 
-              {/* Play/Pause Control Center Button */}
-              <button
-                onClick={() => setIsPlayingVoice(!isPlayingVoice)}
-                className="absolute p-4 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80 hover:scale-110 shadow-xl border border-white/20"
-              >
-                {isPlayingVoice ? (
-                  <Pause className="w-10 h-10 fill-current" />
-                ) : (
-                  <Play className="w-10 h-10 fill-current ml-1" />
-                )}
-              </button>
+              
 
               <div className="absolute bottom-4 bg-black/80 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md border border-white/20 shadow-md">
                 {message.text.includes('(') ? message.text.split('(')[1].replace(')', '') : '0:08'}

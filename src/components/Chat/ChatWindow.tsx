@@ -8,11 +8,13 @@ import {
   Lock,
   Sparkles,
   Radio,
+  Image as ImageIcon,
   Users,
   Bot,
   Check,
   ChevronDown,
   Info,
+  X,
   ArrowLeft,
 } from 'lucide-react';
 import { useTelegram } from '../../context/TelegramContext';
@@ -27,11 +29,13 @@ interface ChatWindowProps {
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpenMiniApp }) => {
-  const { chats, activeChatId, setActiveChatId, messages, startCall, theme } = useTelegram();
+  const { chats, activeChatId, setActiveChatId, messages, startCall, theme, setSearchInChatMode, clearHistory, leaveChat, toggleMute } = useTelegram();
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const [currentPinnedIndex, setCurrentPinnedIndex] = useState(0);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+  const showToast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 3000); };
   const [showProfile, setShowProfile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isLight = theme === 'light';
@@ -90,21 +94,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
   }
 
   return (
-    <div
-      className={`flex-1 flex flex-col relative h-full bg-cover bg-center bg-no-repeat`}
-      style={{
-        backgroundImage: isLight
-          ? 'url("https://telegram.org/img/t_logo.png")'
-          : 'url("https://telegram.org/img/t_logo.png")',
-        backgroundColor: isLight ? '#e6ebe3' : '#0e1621',
-        backgroundBlendMode: isLight ? 'overlay' : 'overlay',
-      }}
-    >
+    <div className="flex-1 flex flex-row h-full w-full overflow-hidden relative">
+      {/* Main Chat Area */}
+      <div
+        className={`flex-1 flex flex-col relative h-full min-w-0 bg-cover bg-center bg-no-repeat`}
+        style={{
+          backgroundImage: isLight
+            ? 'url("https://telegram.org/img/t_logo.png")'
+            : 'url("https://telegram.org/img/t_logo.png")',
+          backgroundColor: isLight ? '#e6ebe3' : '#0e1621',
+          backgroundBlendMode: isLight ? 'overlay' : 'overlay',
+        }}
+      >
       <div className={`absolute inset-0 z-0 ${isLight ? 'bg-[#e6ebe3]/90' : 'bg-[#0e1621]/90'}`} />
       
       {/* Header */}
       <div
-        className={`relative z-10 flex items-center justify-between px-3 py-2 sm:px-4 sm:py-2.5 border-b shadow-xs transition-colors ${
+        className={`relative z-30 flex items-center justify-between px-3 py-2 sm:px-4 sm:py-2.5 border-b shadow-xs transition-colors ${
           isLight ? 'bg-white border-slate-200' : 'bg-[#17212b] border-[#0e1621]'
         }`}
       >
@@ -146,7 +152,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
               )}
             </div>
             <p className={`text-[11px] sm:text-xs truncate font-medium ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
-              {activeChat.isOnline ? (
+              {activeChat.type === 'group' || activeChat.type === 'channel' ? (
+                `${activeChat.membersCount || 1} members`
+              ) : activeChat.isOnline ? (
                 <span className="text-sky-500">online</span>
               ) : (
                 'last seen recently'
@@ -157,27 +165,31 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
 
         {/* Header Actions */}
         <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
-          <button
-            onClick={() => startCall(activeChat.name, activeChat.avatar, false)}
-            title="Call"
-            className={`hidden sm:flex p-1.5 sm:p-2 rounded-full transition-colors ${
-              isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-[#202b36] text-gray-400'
-            }`}
-          >
-            <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
+          {activeChat.type !== 'group' && activeChat.type !== 'channel' && (
+            <>
+              <button
+                onClick={() => startCall(activeChat.name, activeChat.avatar, false)}
+                title="Call"
+                className={`hidden sm:flex p-1.5 sm:p-2 rounded-full transition-colors ${
+                  isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-[#202b36] text-gray-400'
+                }`}
+              >
+                <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+              
+              <button
+                onClick={() => startCall(activeChat.name, activeChat.avatar, true)}
+                title="Video Call"
+                className={`hidden sm:flex p-1.5 sm:p-2 rounded-full transition-colors ${
+                  isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-[#202b36] text-gray-400'
+                }`}
+              >
+                <Video className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            </>
+          )}
           
-          <button
-            onClick={() => startCall(activeChat.name, activeChat.avatar, true)}
-            title="Video Call"
-            className={`hidden sm:flex p-1.5 sm:p-2 rounded-full transition-colors ${
-              isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-[#202b36] text-gray-400'
-            }`}
-          >
-            <Video className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-          
-          <button
+          <button onClick={() => setSearchInChatMode(true)}
             title="Search in chat"
             className={`p-1.5 sm:p-2 rounded-full transition-colors ${
               isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-[#202b36] text-gray-400'
@@ -203,13 +215,39 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
                 isLight ? 'bg-white border border-slate-100' : 'bg-[#17212b] border border-black/20'
               }`}>
                 <button className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] transition-colors ${isLight ? 'hover:bg-slate-100 text-slate-800' : 'hover:bg-[#202b36] text-gray-200'}`}>
-                  <Check className="w-5 h-5 opacity-70" /> Select tone
+                  <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg> Select tone
                 </button>
-                <button className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] transition-colors ${isLight ? 'hover:bg-slate-100 text-slate-800' : 'hover:bg-[#202b36] text-gray-200'}`}>
+                <button onClick={() => { setShowMoreMenu(false); toggleMute(activeChat.id); }} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] transition-colors ${isLight ? 'hover:bg-slate-100 text-slate-800' : 'hover:bg-[#202b36] text-gray-200'}`}>
+                  <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707 .707L5.586 15z"></path><line x1="17" y1="9" x2="23" y2="15"></line><line x1="23" y1="9" x2="17" y2="15"></line></svg> {activeChat.isMuted ? 'Enable sound' : 'Disable sound'}
+                </button>
+                <button onClick={() => { setShowMoreMenu(false); toggleMute(activeChat.id); }} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] transition-colors ${isLight ? 'hover:bg-slate-100 text-slate-800' : 'hover:bg-[#202b36] text-gray-200'}`}>
+                  <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg> Mute for...
+                </button>
+                <button onClick={() => { setShowMoreMenu(false); toggleMute(activeChat.id); }} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] text-red-500 transition-colors ${isLight ? 'hover:bg-slate-100' : 'hover:bg-[#202b36]'}`}>
+                  <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13.73 21a2 2 0 0 1-3.46 0"></path><path d="M18.63 13A17.89 17.89 0 0 1 18 8"></path><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"></path><path d="M18 8a6 6 0 0 0-9.33-5"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg> {activeChat.isMuted ? 'Unmute' : 'Mute forever'}
+                </button>
+                <div className={`my-1 border-b ${isLight ? 'border-slate-100' : 'border-white/10'}`} />
+                <button onClick={() => { setShowMoreMenu(false); setShowProfile(true); }} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] transition-colors ${isLight ? 'hover:bg-slate-100 text-slate-800' : 'hover:bg-[#202b36] text-gray-200'}`}>
                   <Info className="w-5 h-5 opacity-70" /> View group info
                 </button>
+                <button onClick={() => { setShowMoreMenu(false); showToast('Group boosted! 🚀'); }} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] transition-colors ${isLight ? 'hover:bg-slate-100 text-slate-800' : 'hover:bg-[#202b36] text-gray-200'}`}>
+                  <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Boost Group
+                </button>
                 <button onClick={() => { setShowMoreMenu(false); onOpenCreatePoll(); }} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] transition-colors ${isLight ? 'hover:bg-slate-100 text-slate-800' : 'hover:bg-[#202b36] text-gray-200'}`}>
-                  <Sparkles className="w-5 h-5 opacity-70" /> Create poll
+                  <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg> Create poll
+                </button>
+                <button onClick={() => { setShowMoreMenu(false); showToast('Chat history exported successfully!'); }} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] transition-colors ${isLight ? 'hover:bg-slate-100 text-slate-800' : 'hover:bg-[#202b36] text-gray-200'}`}>
+                  <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Export chat history
+                </button>
+                <button onClick={() => setShowMoreMenu(false)} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] transition-colors ${isLight ? 'hover:bg-slate-100 text-slate-800' : 'hover:bg-[#202b36] text-gray-200'}`}>
+                  <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Report
+                </button>
+                <button onClick={() => { setShowMoreMenu(false); clearHistory(activeChat.id); }} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] transition-colors ${isLight ? 'hover:bg-slate-100 text-slate-800' : 'hover:bg-[#202b36] text-gray-200'}`}>
+                  <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Clear history
+                </button>
+                <div className={`my-1 border-b ${isLight ? 'border-slate-100' : 'border-white/10'}`} />
+                <button onClick={() => { setShowMoreMenu(false); leaveChat(activeChat.id); }} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] text-red-500 transition-colors ${isLight ? 'hover:bg-slate-100' : 'hover:bg-[#202b36]'}`}>
+                  <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> Leave {activeChat.type === 'group' || activeChat.type === 'channel' ? 'group' : 'chat'}
                 </button>
               </div>
             </>
@@ -221,7 +259,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
       {pinnedMessages.length > 0 && (
         <div
           onClick={handlePinnedClick}
-          className={`flex items-center justify-between px-4 py-2 border-b text-xs z-10 backdrop-blur-xs cursor-pointer select-none transition-colors ${
+          className={`relative flex items-center justify-between px-4 py-2 border-b text-xs z-20 backdrop-blur-xs cursor-pointer select-none transition-colors ${
             isLight
               ? 'bg-white/90 border-slate-200 hover:bg-slate-50'
               : 'bg-[#17212b]/90 border-[#0e1621] hover:bg-[#1f2c3a]'
@@ -276,12 +314,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
         />
       </div>
 
+      {toastMsg && (
+        <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md text-white text-sm px-4 py-2 rounded-full shadow-lg animate-in fade-in slide-in-from-bottom-2">
+          {toastMsg}
+        </div>
+      )}
       {/* User Profile Modal */}
-      <UserProfileModal
-        isOpen={showProfile}
-        onClose={() => setShowProfile(false)}
-        user={activeChat ? ({ id: activeChat.id, name: activeChat.name, phone: "+998 77 400 11 25", username: activeChat.username || "username", avatar: activeChat.avatar, isOnline: true } as any) : null}
-      />
+    </div>
     </div>
   );
 };
