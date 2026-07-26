@@ -11,6 +11,9 @@ interface UserProfileModalProps {
   user: User | null;
 }
 
+// Tailwind safelist for dynamic colors
+const _safelist = 'border-red-500 border-orange-500 border-yellow-500 border-green-500 border-cyan-500 border-blue-500 border-indigo-500 border-purple-500 border-pink-500 border-rose-500 text-red-500 text-orange-500 text-yellow-500 text-green-500 text-cyan-500 text-blue-500 text-indigo-500 text-purple-500 text-pink-500 text-rose-500';
+
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, user }) => {
   const { theme } = useTelegram();
   const { showToast } = useToast();
@@ -25,7 +28,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeModal, setActiveModal] = useState<'none' | 'name' | 'username' | 'channel' | 'automation' | 'color' | 'birthday' | 'bio'>('none');
   const [editBio, setEditBio] = useState(displayUser?.bio || '');
-  const [activeColor, setActiveColor] = useState(displayUser?.profileColor || 'bg-blue-500');
+  const [activeProfileColor, setActiveProfileColor] = useState(displayUser?.profileColor || 'bg-blue-500');
+  const [activeNameColor, setActiveNameColor] = useState(displayUser?.nameColor || 'bg-yellow-500');
+  const [editBirthday, setEditBirthday] = useState<Date | null>(displayUser?.birthday ? new Date(displayUser.birthday) : null);
+  const [colorTab, setColorTab] = useState<'profile' | 'name'>('profile');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,7 +123,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               <input type="text" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} className={`w-full bg-transparent border-b border-sky-500 focus:outline-none pb-1 text-[15px] ${isLight ? 'text-slate-800' : 'text-white'}`} />
               <label className="absolute -top-3 left-0 text-xs text-sky-500">@username</label>
             </div>
-            <p className={`text-[13px] leading-tight mb-3 ${textSub}`}>You can choose a username on Telegram. If you do, other people will be able to find you by this username and contact you without knowing your phone number.</p>
+            <p className={`text-[13px] leading-tight mb-3 ${textSub}`}>You can choose a username on Telegram. If you do, other people will be able to find you by this username and contact you easily.</p>
             <p className={`text-[13px] leading-tight mb-6 ${textSub}`}>You can use a-z, 0-9 and underscores. Minimum length is 5 characters.</p>
             <div className="flex justify-end gap-4">
               <button onClick={() => setActiveModal('none')} className="text-sky-500 font-medium hover:text-sky-600">Cancel</button>
@@ -204,6 +210,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     
     if (activeModal === 'color') {
       const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-cyan-500', 'bg-blue-500', 'bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-rose-500'];
+      
+      const currentActiveColor = colorTab === 'profile' ? activeProfileColor : activeNameColor;
+      const setCurrentColor = colorTab === 'profile' ? setActiveProfileColor : setActiveNameColor;
+      
       return (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setActiveModal('none')} />
@@ -216,22 +226,22 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             </div>
             
             <div className="flex border-b border-black/10">
-              <button className="flex-1 py-3 text-center text-sky-500 font-medium border-b-2 border-sky-500">Profile</button>
-              <button className={`flex-1 py-3 text-center ${textSub}`}>Name</button>
+              <button onClick={() => setColorTab('profile')} className={`flex-1 py-3 text-center font-medium ${colorTab === 'profile' ? 'text-sky-500 border-b-2 border-sky-500' : textSub}`}>Profile</button>
+              <button onClick={() => setColorTab('name')} className={`flex-1 py-3 text-center font-medium ${colorTab === 'name' ? 'text-sky-500 border-b-2 border-sky-500' : textSub}`}>Name</button>
             </div>
             
             <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
               <div className="flex flex-col items-center mb-6">
-                <div className={`w-20 h-20 rounded-full border-4 ${activeColor.replace('bg-', 'border-')} p-1 mb-2`}>
+                <div className={`w-20 h-20 rounded-full border-[3px] ${activeProfileColor.replace('bg-', 'border-')} p-1 mb-2`}>
                   <img src={displayUser.avatar || 'https://i.pravatar.cc/150'} alt="Avatar" className="w-full h-full rounded-full object-cover" />
                 </div>
-                <h3 className={`font-medium ${activeColor.replace('bg-', 'text-')}`}>{displayUser.name}</h3>
+                <h3 className={`font-medium ${activeNameColor.replace('bg-', 'text-')}`}>{displayUser.name}</h3>
                 <span className="text-sky-500 text-sm">online</span>
               </div>
               
               <div className="flex flex-wrap gap-3 justify-center mb-6">
                 {colors.map((c, i) => (
-                  <div key={i} onClick={() => setActiveColor(c)} className={`w-8 h-8 rounded-full ${c} cursor-pointer hover:scale-110 transition-transform ${activeColor === c ? 'ring-2 ring-sky-500 ring-offset-2 ring-offset-transparent' : ''}`} />
+                  <div key={i} onClick={() => setCurrentColor(c)} className={`w-10 h-10 rounded-full ${c} cursor-pointer hover:scale-110 transition-transform ${currentActiveColor === c ? 'ring-[3px] ring-sky-500 ring-offset-[3px] ring-offset-[#17212b]' : ''}`} />
                 ))}
               </div>
               
@@ -259,7 +269,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             </div>
             
             <div className="p-4 border-t border-black/10">
-              <button className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors" onClick={() => { updateUserProfile({ profileColor: activeColor }); setActiveModal('none'); }}>
+              <button className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors" onClick={() => { updateUserProfile({ profileColor: activeProfileColor, nameColor: activeNameColor }); setActiveModal('none'); }}>
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>
                 APPLY STYLE
               </button>
@@ -269,36 +279,153 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
       );
     }
     
+    
     if (activeModal === 'birthday') {
+      const currentDate = editBirthday || new Date(2000, 0, 1);
+      const day = currentDate.getDate();
+      const month = currentDate.getMonth(); // 0-11
+      const year = currentDate.getFullYear();
+      
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+      const setBirthdayPart = (type: 'day' | 'month' | 'year', val: number) => {
+        let y = year;
+        let m = month;
+        let d = day;
+        if (type === 'year') y = val;
+        if (type === 'month') m = val;
+        if (type === 'day') d = val;
+
+        const maxDays = new Date(y, m + 1, 0).getDate();
+        if (d > maxDays) d = maxDays;
+
+        setEditBirthday(new Date(y, m, d));
+      };
+
+      const dateInputValue = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
       return (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setActiveModal('none')} />
-          <div className={`relative w-full max-w-[300px] rounded-xl shadow-2xl z-10 ${bgModal} p-5 animate-in fade-in zoom-in-95`}>
+          <div className={`relative w-full max-w-[320px] rounded-xl shadow-2xl z-10 ${bgModal} p-5 animate-in fade-in zoom-in-95`}>
             <h3 className="text-[17px] font-medium mb-4">Set your Birthday</h3>
-            
-            <div className="mb-6">
+
+            {/* Dropdown Selectors */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {/* Day */}
+              <div className="flex flex-col items-center">
+                <span className={`text-[11px] mb-1 font-medium ${textSub}`}>Day</span>
+                <select
+                  value={day}
+                  onChange={(e) => setBirthdayPart('day', parseInt(e.target.value))}
+                  className={`w-full py-2 px-1 rounded-lg border text-sm font-semibold text-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                    isLight ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-[#242f3d] border-gray-700 text-white'
+                  }`}
+                >
+                  {Array.from({ length: new Date(year, month + 1, 0).getDate() }, (_, i) => i + 1).map((dNum) => (
+                    <option key={dNum} value={dNum}>{dNum}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Month */}
+              <div className="flex flex-col items-center">
+                <span className={`text-[11px] mb-1 font-medium ${textSub}`}>Month</span>
+                <select
+                  value={month}
+                  onChange={(e) => setBirthdayPart('month', parseInt(e.target.value))}
+                  className={`w-full py-2 px-1 rounded-lg border text-sm font-semibold text-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                    isLight ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-[#242f3d] border-gray-700 text-white'
+                  }`}
+                >
+                  {monthNames.map((mName, idx) => (
+                    <option key={mName} value={idx}>{mName.slice(0, 3)}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Year */}
+              <div className="flex flex-col items-center">
+                <span className={`text-[11px] mb-1 font-medium ${textSub}`}>Year</span>
+                <select
+                  value={year}
+                  onChange={(e) => setBirthdayPart('year', parseInt(e.target.value))}
+                  className={`w-full py-2 px-1 rounded-lg border text-sm font-semibold text-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                    isLight ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-[#242f3d] border-gray-700 text-white'
+                  }`}
+                >
+                  {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((yNum) => (
+                    <option key={yNum} value={yNum}>{yNum}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Visual Wheel Preview Bar */}
+            <div className="relative flex justify-between items-center h-[90px] mb-4 px-3 rounded-lg overflow-hidden border border-black/10 bg-black/5">
+              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-8 border-y border-sky-500/30 bg-sky-500/10 pointer-events-none"></div>
+
+              {/* Day Wheel Column */}
+              <div className="flex flex-col items-center gap-1 text-[13px] z-10 flex-1">
+                <button type="button" onClick={() => setBirthdayPart('day', day > 1 ? day - 1 : 31)} className={`${textSub} opacity-50 hover:opacity-100`}>
+                  {day - 1 > 0 ? day - 1 : 31}
+                </button>
+                <span className="font-bold text-sky-400">{day}</span>
+                <button type="button" onClick={() => setBirthdayPart('day', day < 31 ? day + 1 : 1)} className={`${textSub} opacity-50 hover:opacity-100`}>
+                  {day + 1 <= 31 ? day + 1 : 1}
+                </button>
+              </div>
+
+              {/* Month Wheel Column */}
+              <div className="flex flex-col items-center gap-1 text-[13px] z-10 flex-1">
+                <button type="button" onClick={() => setBirthdayPart('month', (month + 11) % 12)} className={`${textSub} opacity-50 hover:opacity-100`}>
+                  {monthNames[(month + 11) % 12].slice(0, 3)}
+                </button>
+                <span className="font-bold text-sky-400">{monthNames[month].slice(0, 3)}</span>
+                <button type="button" onClick={() => setBirthdayPart('month', (month + 1) % 12)} className={`${textSub} opacity-50 hover:opacity-100`}>
+                  {monthNames[(month + 1) % 12].slice(0, 3)}
+                </button>
+              </div>
+
+              {/* Year Wheel Column */}
+              <div className="flex flex-col items-center gap-1 text-[13px] z-10 flex-1">
+                <button type="button" onClick={() => setBirthdayPart('year', year - 1)} className={`${textSub} opacity-50 hover:opacity-100`}>
+                  {year - 1}
+                </button>
+                <span className="font-bold text-sky-400">{year}</span>
+                <button type="button" onClick={() => setBirthdayPart('year', year + 1)} className={`${textSub} opacity-50 hover:opacity-100`}>
+                  {year + 1}
+                </button>
+              </div>
+            </div>
+
+            {/* Native Calendar Picker Input */}
+            <div className="mb-5">
               <input
                 type="date"
-                defaultValue={(() => { try { return displayUser.birthday ? new Date(displayUser.birthday).toISOString().split('T')[0] : ''; } catch (e) { return ''; } })()}
-                className={`w-full bg-transparent border-b border-sky-500 focus:outline-none pb-1 text-[15px] ${isLight ? 'text-slate-800' : 'text-white'}`}
+                value={dateInputValue}
                 onChange={(e) => {
-                   // We'll store it directly to avoid adding a new state, and access it via ID.
-                   // A better way is using a ref, but let's just add an ID.
+                  if (e.target.value) {
+                    const [y, m, d] = e.target.value.split('-').map(Number);
+                    setEditBirthday(new Date(y, m - 1, d));
+                  } else {
+                    setEditBirthday(null);
+                  }
                 }}
-                id="birthday-input"
+                className={`w-full py-2 px-3 rounded-lg border text-sm font-medium focus:outline-none focus:border-sky-500 ${
+                  isLight ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-[#242f3d] border-gray-700 text-white'
+                }`}
               />
             </div>
-            
+
             <div className="flex justify-end gap-4">
               <button onClick={() => setActiveModal('none')} className="text-sky-500 font-medium hover:text-sky-600">Cancel</button>
               <button onClick={() => {
-                const dateVal = (document.getElementById('birthday-input') as HTMLInputElement)?.value;
-                if (dateVal) {
-                  const d = new Date(dateVal);
-                  const formatted = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                if (editBirthday) {
+                  const formatted = editBirthday.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
                   updateUserProfile({ birthday: formatted });
                 } else {
-                   updateUserProfile({ birthday: '' });
+                  updateUserProfile({ birthday: '' });
                 }
                 setActiveModal('none');
               }} className="text-sky-500 font-medium hover:text-sky-600">Save</button>
@@ -306,7 +433,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
           </div>
         </div>
       );
-    }  };
+    }
+  };
 
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center">
@@ -335,7 +463,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
           <div className="flex-1 overflow-y-auto no-scrollbar pb-4">
             {/* Avatar section */}
             <div className="flex flex-col items-center pt-5 pb-3">
-              <div className="relative w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-4xl font-bold mb-3">
+              <div className={`relative w-20 h-20 rounded-full flex items-center justify-center text-4xl font-bold mb-3 border-[3px] p-[2px] ${displayUser.profileColor ? displayUser.profileColor.replace('bg-', 'border-') : 'border-blue-500'}`}>
                 {displayUser.avatar ? (
                   <img src={displayUser.avatar} alt={displayUser.name} className="w-full h-full object-cover rounded-full" />
                 ) : (
@@ -345,7 +473,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                   <Camera className="w-3.5 h-3.5 text-white" />
                 </div>
               </div>
-              <h2 className={`text-lg font-medium mb-0.5 ${displayUser.profileColor ? displayUser.profileColor.replace('bg-', 'text-') : ''}`}>{displayUser.name}</h2>
+              <h2 className={`text-lg font-medium mb-0.5 ${displayUser.nameColor ? displayUser.nameColor.replace('bg-', 'text-') : (displayUser.profileColor ? displayUser.profileColor.replace('bg-', 'text-') : '')}`}>{displayUser.name}</h2>
               <p className="text-sm text-sky-400">online</p>
             </div>
 
@@ -372,13 +500,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                   <span className="text-sky-400">{displayUser.name}</span>
                 </div>
               </div>
-              <div onClick={() => showToast("Change phone number wizard coming soon")} className={`flex items-center px-4 py-3 cursor-pointer hover:bg-black/5`}>
-                <Phone className={`w-5 h-5 mr-4 ${textSub}`} />
-                <div className="flex-1 flex justify-between items-center">
-                  <span className={textSub}>Phone number</span>
-                  <span className="text-sky-400">{displayUser.phone || '+998 77 400 11 25'}</span>
-                </div>
-              </div>
+              
               <div className={`flex items-center px-4 py-3 cursor-pointer hover:bg-black/5`}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-5 h-5 mr-4 ${textSub}`}>
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
@@ -398,7 +520,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               </div>
               <div className={`px-4 pb-3 pt-1 border-b ${borderCol}`}>
                 <p className={`text-[11px] ${textSub} leading-tight`}>
-                  Username lets people contact you on Telegram without needing your phone number.
+                  Username lets people contact you on Telegram easily.
                 </p>
               </div>
 
@@ -489,14 +611,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               Google (Email)
             </span>
           </div>
-          <div className="flex flex-col py-2">
-            <span className={`text-[15px] font-medium ${isLight ? 'text-slate-800' : 'text-gray-100'}`}>
-              {displayUser.phone || '+998 77 400 11 25'}
-            </span>
-            <span className={`text-[13px] ${textSub}`}>
-              Mobile
-            </span>
-          </div>
+          
           <div className="flex items-center justify-between py-2 cursor-pointer group">
             <div className="flex flex-col">
               <span className="text-[15px] text-sky-400 font-medium group-hover:underline">

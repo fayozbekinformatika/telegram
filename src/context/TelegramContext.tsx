@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Chat, Message, Story, ChatFolder, ThemeMode, Reaction, Poll } from '../types/telegram';
 import { initialChats, initialMessages, initialStories, initialFolders } from '../data/initialData';
 import { useAuth } from './AuthContext';
 import confetti from 'canvas-confetti';
+import { db, isFirebaseConfigured } from '../lib/firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 interface TelegramContextType {
   chats: Chat[];
@@ -21,7 +23,7 @@ interface TelegramContextType {
   votePoll: (chatId: string, messageId: string, optionId: string) => void;
   deleteMessage: (chatId: string, messageId: string, forEveryone?: boolean) => void;
   pinMessage: (chatId: string, messageId: string) => void;
-  createNewChat: (name: string, type: Chat['type'], username?: string, description?: string) => Chat;
+  createNewChat: (name: string, type: Chat['type'], username?: string, description?: string, avatar?: string) => Chat;
   clearHistory: (chatId: string) => void;
   leaveChat: (chatId: string) => void;
   toggleMute: (chatId: string) => void;
@@ -83,7 +85,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [searchInChatMode, setSearchInChatMode] = useState<boolean>(false);
 
   const [theme, setTheme] = useState<ThemeMode>(() => {
-    return (localStorage.getItem('tg_theme') as ThemeMode) || 'light';
+    return (localStorage.getItem('tg_theme') as ThemeMode) || 'night';
   });
 
   const [chatWallpaper, setChatWallpaper] = useState<string>(() => {
@@ -93,13 +95,45 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [fontSize, setFontSize] = useState<number>(15);
   const [activeCall, setActiveCall] = useState<{ isVideo: boolean; chatName: string; avatar?: string } | null>(null);
 
+  // Flag to avoid writing back initial data or snapshot loops
+  const isInitiated = useRef(false);
+
+  useEffect(() => {
+    if (isFirebaseConfigured() && db) {
+      let messagesLoaded = false;
+      const unsubMessages = onSnapshot(doc(db, 'telegram_clone', 'messages'), (docSnap) => {
+        if (docSnap.exists()) {
+           setMessages(docSnap.data() as Record<string, Message[]>);
+           messagesLoaded = true;
+           isInitiated.current = true;
+        }
+      });
+      const unsubChats = onSnapshot(doc(db, 'telegram_clone', 'chats'), (docSnap) => {
+        if (docSnap.exists()) {
+           setChats(docSnap.data().chats as Chat[]);
+        }
+      });
+      // Fallback: If no doc exists after 2 seconds, allow local data to be written to Firebase
+      setTimeout(() => {
+        if (!messagesLoaded) isInitiated.current = true;
+      }, 2000);
+      return () => { unsubMessages(); unsubChats(); };
+    }
+  }, []);
+
   // Sync storage
   useEffect(() => {
     localStorage.setItem('tg_chats', JSON.stringify(chats));
+    if (isInitiated.current && isFirebaseConfigured() && db) {
+      setDoc(doc(db, 'telegram_clone', 'chats'), { chats }).catch(console.error);
+    }
   }, [chats]);
 
   useEffect(() => {
     localStorage.setItem('tg_messages', JSON.stringify(messages));
+    if (isInitiated.current && isFirebaseConfigured() && db) {
+      setDoc(doc(db, 'telegram_clone', 'messages'), messages).catch(console.error);
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -280,17 +314,17 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           if (m.id === messageId) {
             const reactions = m.reactions || [];
             const existing = reactions.find((r) => r.emoji === emoji);
+            // If clicking the same reaction emoji that is already active, toggle it off (remove it)
             if (existing) {
               return {
                 ...m,
-                reactions: reactions.map((r) =>
-                  r.emoji === emoji ? { ...r, count: r.count + 1 } : r
-                ),
+                reactions: [],
               };
             }
+            // Otherwise, replace existing reactions so there is strictly 1 active reaction on the message
             return {
               ...m,
-              reactions: [...reactions, { emoji, count: 1, users: [user?.id || 'me'] }],
+              reactions: [{ emoji, count: 1, users: [user?.id || 'me'] }],
             };
           }
           return m;
@@ -362,12 +396,12 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (activeChatId === chatId) setActiveChatId(null);
   };
 
-  const createNewChat = (name: string, type: Chat['type'], username?: string, description?: string): Chat => {
+  const createNewChat = (name: string, type: Chat['type'], username?: string, description?: string, avatar?: string): Chat => {
     const newChat: Chat = {
       id: `chat_${Date.now()}`,
       name,
       type,
-      avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${name}`,
+      avatar: avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${name}`,
       username: username || name.toLowerCase().replace(/\s+/g, '_'),
       unreadCount: 0,
       membersCount: type === 'group' || type === 'channel' ? 1 : undefined,

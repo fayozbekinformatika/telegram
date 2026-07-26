@@ -11,7 +11,7 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({ isOpen, onClose })
   const { theme, chats, createNewChat, setActiveChatId } = useTelegram();
   const [search, setSearch] = useState('');
   const [isAdding, setIsAdding] = useState(false);
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
@@ -39,22 +39,22 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({ isOpen, onClose })
               <input type="text" placeholder="Last Name (optional)" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`w-full bg-transparent border-b ${borderCol} focus:border-sky-500 focus:outline-none pb-1 text-[15px]`} />
             </div>
             <div className="relative">
-              <input type="text" placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} className={`w-full bg-transparent border-b ${borderCol} focus:border-sky-500 focus:outline-none pb-1 text-[15px]`} />
+              <input type="text" placeholder="Email or Username" value={email} onChange={(e) => setEmail(e.target.value)} className={`w-full bg-transparent border-b ${borderCol} focus:border-sky-500 focus:outline-none pb-1 text-[15px]`} />
             </div>
           </div>
           <div className="flex justify-end gap-4">
             <button onClick={() => setIsAdding(false)} className="text-sky-500 font-medium hover:text-sky-600">Cancel</button>
             <button onClick={() => {
-              if (firstName.trim() || phone.trim()) {
-                const name = (firstName + ' ' + lastName).trim() || phone;
+              if (firstName.trim() || email.trim()) {
+                const name = (firstName + ' ' + lastName).trim() || email;
                 // Add to contacts by creating a private chat (in our mock structure)
                 // Assuming we can access createNewChat from context
-                createNewChat(name, 'private', phone, 'Added from contacts');
+                createNewChat(name, 'private', email, 'Added from contacts');
               }
               setIsAdding(false);
               setFirstName('');
               setLastName('');
-              setPhone('');
+              setEmail('');
             }} className="text-sky-500 font-medium hover:text-sky-600">Done</button>
           </div>
         </div>

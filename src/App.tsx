@@ -18,10 +18,11 @@ import { PollCreateModal } from './components/Modals/PollCreateModal';
 import { MiniAppModal } from './components/Modals/MiniAppModal';
 import { ContactsModal } from './components/Modals/ContactsModal';
 import { CallsModal } from './components/Modals/CallsModal';
+import { LoginScreen } from './components/Auth/LoginScreen';
 
 const TelegramMainApp: React.FC = () => {
   const { searchQuery, setSearchQuery, theme, activeChatId, searchInChatMode, setSearchInChatMode } = useTelegram();
-  const { lockApp, isPasscodeLocked, passcode } = useAuth();
+  const { lockApp, isPasscodeLocked, passcode, isAuthenticated } = useAuth();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -33,13 +34,17 @@ const TelegramMainApp: React.FC = () => {
   const [isMiniAppOpen, setIsMiniAppOpen] = useState(false);
   const [newChatType, setNewChatType] = useState<'group' | 'channel' | 'secret' | null>(null);
 
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
+
   // Theme styling mapping
   const isLight = theme === 'light';
 
   const getThemeBg = () => {
-    if (theme === 'night') return 'bg-[#17212b]';
-    if (theme === 'green') return 'bg-emerald-950';
-    return 'bg-[#e4e9f0] text-slate-800';
+    if (theme === 'light') return 'bg-[#e4e9f0] text-slate-800';
+    if (theme === 'green') return 'bg-emerald-950 text-white';
+    return 'bg-[#0e1621] text-white';
   };
 
   return (

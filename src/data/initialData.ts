@@ -7,7 +7,7 @@ export const currentUserDefault: User = {
   username: 'fayozchek',
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
   bio: 'Building future technology with AI Studio & Telegram Web 🚀',
-  phoneNumber: '+998 90 123 45 67',
+  
   isVerified: true,
   isPremium: true,
   status: 'online',

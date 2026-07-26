@@ -58,8 +58,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <div className="flex-1">
               <h3 className="font-medium text-[16px]">{user?.name || 'Fayozbek Yusubjonov'}</h3>
-              <p className="text-[13px] opacity-80">{user?.phone || '+998 77 400 11 25'}</p>
-              <p className="text-[13px] opacity-80">@{user?.username || 'fayozchek'}</p>
+                            <p className="text-[13px] opacity-80">@{user?.username || 'fayozchek'}</p>
             </div>
             <button onClick={() => showToast("Scan QR Code")} className="p-2 hover:bg-black/10 rounded-full transition-colors self-start">
                <ScanLine className="w-5 h-5 opacity-70" />

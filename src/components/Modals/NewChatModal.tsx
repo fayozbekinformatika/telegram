@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Camera, Image as ImageIcon, Clipboard, Smile, Check, Plus } from 'lucide-react';
 import { useTelegram } from '../../context/TelegramContext';
 import { useToast } from '../../context/ToastContext';
@@ -16,6 +16,21 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, type, onClos
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const url = event.target?.result as string;
+        setAvatarPreview(url);
+        setShowPhotoMenu(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const isLight = theme === 'light';
 
@@ -23,10 +38,11 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, type, onClos
 
   const handleCreate = () => {
     if (!name.trim()) return;
-    createNewChat(name.trim(), type as ChatType, '', description.trim());
+    createNewChat(name.trim(), type as ChatType, '', description.trim(), avatarPreview);
     setName('');
     setDescription('');
     setShowPhotoMenu(false);
+    setAvatarPreview('');
     onClose();
   };
   
@@ -34,6 +50,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, type, onClos
     setName('');
     setDescription('');
     setShowPhotoMenu(false);
+    setAvatarPreview('');
     onClose();
   };
 
@@ -49,16 +66,23 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, type, onClos
         
         <div className="flex gap-4">
           <div className="relative">
+            
+            <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
             <button 
               onClick={() => setShowPhotoMenu(!showPhotoMenu)}
-              className="w-14 h-14 rounded-full bg-sky-500 hover:bg-sky-400 flex items-center justify-center transition-colors text-white"
+              className="w-14 h-14 rounded-full bg-sky-500 hover:bg-sky-400 flex items-center justify-center transition-colors text-white overflow-hidden relative"
             >
-              <Camera className="w-6 h-6" />
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Group Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <Camera className="w-6 h-6" />
+              )}
             </button>
+
             
             {showPhotoMenu && (
               <div className={`absolute top-0 left-16 w-48 rounded-xl shadow-2xl py-1 z-20 animate-in fade-in zoom-in-95 ${bgModal}`}>
-                <button onClick={(e) => showToast(e.currentTarget.textContent || "Coming soon")} className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-black/10 transition-colors`}>
+                <button onClick={() => { fileInputRef.current?.click(); }} className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-black/10 transition-colors`}>
                   <ImageIcon className="w-5 h-5 text-gray-400" />
                   <span>File</span>
                 </button>

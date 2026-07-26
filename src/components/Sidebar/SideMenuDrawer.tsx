@@ -50,7 +50,7 @@ export const SideMenuDrawer: React.FC<SideMenuDrawerProps> = ({
       <UserProfileModal 
         isOpen={showMyProfile} 
         onClose={() => setShowMyProfile(false)} 
-        user={{ id: user?.id || 'me', name: user?.name || 'Fayozbek Yusubjonov', phone: "+998 77 400 11 25", username: "fayozchek", avatar: user?.avatar || 'https://i.pravatar.cc/150?u=a042581f4e29026024d', isOnline: true } as any}
+        user={{ id: user?.id || 'me', name: user?.name || 'Fayozbek Yusubjonov', username: "fayozchek", avatar: user?.avatar || 'https://i.pravatar.cc/150?u=a042581f4e29026024d', isOnline: true } as any}
       />
       
       {/* Backdrop */}

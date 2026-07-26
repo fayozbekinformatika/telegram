@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types/telegram';
 import { currentUserDefault } from '../data/initialData';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider, isFirebaseConfigured } from '../lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -88,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         username: email.split('@')[0],
         avatar: avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${email}`,
         bio: `Authenticated via Google (${email})`,
-        phoneNumber: '+998 90 ' + Math.floor(1000000 + Math.random() * 9000000),
+        
         isVerified: true,
         isPremium: true,
         status: 'online',
@@ -99,29 +101,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogleOAuth = async () => {
     try {
-      const res = await fetch('/api/auth/google/url');
-      const { url } = await res.json();
-
-      const popup = window.open(url, 'google_oauth_popup', 'width=600,height=700');
-      if (!popup) {
-        alert('Iltimos, qalqib chiquvchi oyna (popup) ga ruxsat bering!');
+      if (isFirebaseConfigured() && auth) {
+        const result = await signInWithPopup(auth, googleProvider);
+        const fbUser = result.user;
+        const newUser: User = {
+          id: fbUser.uid,
+          name: fbUser.displayName || fbUser.email?.split('@')[0] || 'User',
+          email: fbUser.email || '',
+          username: fbUser.email?.split('@')[0] || 'user',
+          avatar: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${fbUser.email}`,
+          bio: `Authenticated via Google`,
+          isVerified: true,
+          isPremium: true,
+          status: 'online',
+        };
+        setUser(newUser);
+      } else {
+        // Fallback for missing firebase config
+        console.warn('Firebase config missing, using direct login fallback');
+        loginWithGoogleDirect('fayozchekyusubhonov@gmail.com', 'Fayozchek Yusubhonov');
       }
     } catch (err) {
-      console.error('OAuth error:', err);
+      console.error('Firebase Auth error:', err);
     }
   };
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-        loginWithGoogleDirect('fayozchekyusubhonov@gmail.com', 'Fayozchek Yusubhonov');
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    if (auth && isFirebaseConfigured()) {
+      const unsubscribe = auth.onAuthStateChanged((fbUser) => {
+        if (fbUser) {
+           setUser((prev) => prev ? prev : {
+              id: fbUser.uid,
+              name: fbUser.displayName || fbUser.email?.split('@')[0] || 'User',
+              email: fbUser.email || '',
+              username: fbUser.email?.split('@')[0] || 'user',
+              avatar: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${fbUser.email}`,
+              bio: `Authenticated via Google`,
+              isVerified: true,
+              isPremium: true,
+              status: 'online',
+           });
+        }
+      });
+      return () => unsubscribe();
+    }
   }, []);
 
-  const logout = () => {
+  const logout = async () => {
+    if (auth && isFirebaseConfigured()) {
+       await auth.signOut();
+    }
     setUser(null);
     localStorage.removeItem('tg_user');
   };
