@@ -90,10 +90,13 @@ export interface Chat {
   folderIds?: string[];
   lastMessage?: Message;
   membersCount?: number;
+  memberIds?: string[];
   description?: string;
   pinnedMessageIds?: string[];
   isVerified?: boolean;
   secretChatKey?: string;
+  creatorId?: string;
+  adminIds?: string[];
 }
 
 export interface Story {

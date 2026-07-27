@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Message } from '../../types/telegram';
 import { useTelegram } from '../../context/TelegramContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface MessageItemProps {
   message: Message;
@@ -31,7 +32,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   isHighlighted,
   onScrollToMessage,
 }) => {
-  const { addReaction, votePoll, deleteMessage, pinMessage, activeChatId, theme } = useTelegram();
+  const { addReaction, votePoll, deleteMessage, pinMessage, activeChatId, theme, globalUsers } = useTelegram();
+  const { user } = useAuth();
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [voicePlaybackSpeed, setVoicePlaybackSpeed] = useState<number>(1);
   const [showSpoiler, setShowSpoiler] = useState(false);
@@ -41,7 +43,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   const [videoProgress, setVideoProgress] = useState(0);
   const [showImageLightbox, setShowImageLightbox] = useState(false);
 
-  const isOutgoing = message.isOutgoing;
+  const isOutgoing = message.senderId === user?.id || (message.senderId === 'user_me');
   const isLight = theme === 'light';
 
   const handleCopyCode = (codeText: string) => {
@@ -144,9 +146,9 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
       {/* Message Bubble Container */}
       <div className="flex items-end gap-1.5 sm:gap-2 max-w-[90%] sm:max-w-[80%] md:max-w-[70%]">
-        {!isOutgoing && message.senderAvatar && (
+        {!isOutgoing && (
           <img
-            src={message.senderAvatar}
+            src={globalUsers?.[message.senderId]?.avatar || message.senderAvatar || 'https://telegram.org/img/t_logo.png'}
             alt={message.senderName}
             className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover shrink-0 mb-1 border ${
               isLight ? 'border-slate-200' : 'border-gray-700'
@@ -432,24 +434,28 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           <div className="flex items-center justify-between gap-2 mt-1.5 pt-1 border-t border-black/5 text-[10px]">
             {/* Reactions */}
             <div className="flex items-center gap-1 flex-wrap">
-              {message.reactions?.map((r) => (
+              {message.reactions?.map((r) => {
+                const hasReacted = r.users?.includes(user?.id || 'me');
+                return (
                 <button
                   key={r.emoji}
                   onClick={() => {
                     if (activeChatId) addReaction(activeChatId, message.id, r.emoji);
                   }}
-                  className={`px-1.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 border ${
-                    isOutgoing
-                      ? 'bg-white/20 border-white/30 text-white'
-                      : isLight
-                      ? 'bg-slate-100 border-slate-200 text-slate-700'
-                      : 'bg-black/20 border-white/10 text-gray-200'
+                  className={`px-1.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 border transition-colors ${
+                    hasReacted 
+                      ? (isLight ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-sky-500/30 border-sky-500/50 text-sky-300')
+                      : isOutgoing
+                        ? 'bg-white/20 border-white/30 text-white hover:bg-white/30'
+                        : isLight
+                        ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                        : 'bg-black/20 border-white/10 text-gray-200 hover:bg-white/10'
                   }`}
                 >
                   <span>{r.emoji}</span>
                   <span>{r.count}</span>
                 </button>
-              ))}
+              )})}
 
               <button
                 onClick={() => setShowQuickReactions(!showQuickReactions)}
@@ -526,16 +532,18 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           <span className="text-[11px]">Sanchish</span>
         </button>
 
-        <button
-          onClick={() => {
-            if (activeChatId) deleteMessage(activeChatId, message.id);
-          }}
-          title="O'chirish"
-          className="flex items-center gap-1 px-1.5 py-0.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors font-medium"
-        >
-          <Trash2 className="w-3 h-3" />
-          <span className="text-[11px]">O'chirish</span>
-        </button>
+        {isOutgoing && (
+          <button
+            onClick={() => {
+              if (activeChatId) deleteMessage(activeChatId, message.id);
+            }}
+            title="O'chirish"
+            className="flex items-center gap-1 px-1.5 py-0.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors font-medium cursor-pointer"
+          >
+            <Trash2 className="w-3 h-3" />
+            <span className="text-[11px]">O'chirish</span>
+          </button>
+        )}
       </div>
 
       {/* Centered Large Circular Video Note Modal Overlay (Telegram Style) */}

@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Telegram Clone rules
+    match /telegram_clone/{docId} {
+      // Allow any signed-in user to read and write for the demo.
+      // In a production app, chats and messages should be in subcollections 
+      // with strict role-based access control (ABAC).
+      allow read, write: if isSignedIn();
+    }
+  }
+}

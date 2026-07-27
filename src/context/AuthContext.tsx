@@ -23,7 +23,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('tg_user');
-    return saved ? JSON.parse(saved) : currentUserDefault;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed?.id === 'user_me') {
+          localStorage.removeItem('tg_user');
+          return null;
+        }
+        return parsed;
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
   });
 
   const [passcode, setPasscodeState] = useState<string | null>(() => {
@@ -90,7 +102,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         username: email.split('@')[0],
         avatar: avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${email}`,
         bio: `Authenticated via Google (${email})`,
-        
         isVerified: true,
         isPremium: true,
         status: 'online',
@@ -100,9 +111,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithGoogleOAuth = async () => {
+    console.log("loginWithGoogleOAuth called");
     try {
       if (isFirebaseConfigured() && auth) {
+        console.log("Firebase is configured, calling signInWithPopup...");
         const result = await signInWithPopup(auth, googleProvider);
+        console.log("signInWithPopup succeeded!", result);
         const fbUser = result.user;
         const newUser: User = {
           id: fbUser.uid,
@@ -117,12 +131,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(newUser);
       } else {
-        // Fallback for missing firebase config
-        console.warn('Firebase config missing, using direct login fallback');
-        loginWithGoogleDirect('fayozchekyusubhonov@gmail.com', 'Fayozchek Yusubhonov');
+        console.warn('Firebase config missing');
+        throw new Error('Firebase configuration is missing.');
       }
     } catch (err) {
       console.error('Firebase Auth error:', err);
+      throw err;
     }
   };
 
@@ -130,16 +144,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (auth && isFirebaseConfigured()) {
       const unsubscribe = auth.onAuthStateChanged((fbUser) => {
         if (fbUser) {
-           setUser((prev) => prev ? prev : {
-              id: fbUser.uid,
-              name: fbUser.displayName || fbUser.email?.split('@')[0] || 'User',
-              email: fbUser.email || '',
-              username: fbUser.email?.split('@')[0] || 'user',
-              avatar: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${fbUser.email}`,
-              bio: `Authenticated via Google`,
-              isVerified: true,
-              isPremium: true,
-              status: 'online',
+           setUser((prev) => {
+              if (prev && prev.id === fbUser.uid) return prev;
+              return {
+                id: fbUser.uid,
+                name: fbUser.displayName || fbUser.email?.split('@')[0] || 'User',
+                email: fbUser.email || '',
+                username: fbUser.email?.split('@')[0] || 'user',
+                avatar: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${fbUser.email}`,
+                bio: `Authenticated via Google`,
+                isVerified: true,
+                isPremium: true,
+                status: 'online',
+              };
            });
         }
       });

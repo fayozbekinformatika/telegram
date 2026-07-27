@@ -1,0 +1,498 @@
+1 import { handleFirestoreError, OperationType } from "../lib/firebase-errors";
+2 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+3 import { Chat, Message, Story, ChatFolder, ThemeMode, Reaction, Poll } from '../types/telegram';
+4 import { initialChats, initialMessages, initialStories, initialFolders } from '../data/initialData';
+5 import { useAuth } from './AuthContext';
+6 import confetti from 'canvas-confetti';
+7 import { db, isFirebaseConfigured } from '../lib/firebase';
+8 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+9 
+10 interface TelegramContextType {
+11   chats: Chat[];
+12   activeChatId: string | null;
+13   setActiveChatId: (id: string | null) => void;
+14   messages: Record<string, Message[]>;
+15   sendMessage: (
+16     chatId: string,
+17     text: string,
+18     mediaType?: Message['mediaType'],
+19     mediaUrl?: string,
+20     poll?: Poll,
+21     replyToId?: string
+22   ) => void;
+23   addReaction: (chatId: string, messageId: string, emoji: string) => void;
+24   votePoll: (chatId: string, messageId: string, optionId: string) => void;
+25   deleteMessage: (chatId: string, messageId: string, forEveryone?: boolean) => void;
+26   pinMessage: (chatId: string, messageId: string) => void;
+27   createNewChat: (name: string, type: Chat['type'], username?: string, description?: string, avatar?: string) => Chat;
+28   clearHistory: (chatId: string) => void;
+29   leaveChat: (chatId: string) => void;
+30   toggleMute: (chatId: string) => void;
+31   
+32   // Folders & Search
+33   folders: ChatFolder[];
+34   activeFolderId: string;
+35   setActiveFolderId: (id: string) => void;
+36   searchQuery: string;
+37   setSearchQuery: (query: string) => void;
+38   searchInChatMode: boolean;
+39   setSearchInChatMode: (val: boolean) => void;
+40 
+41   // Stories
+42   stories: Story[];
+43   addStory: (mediaUrl: string, caption?: string) => void;
+44   activeStoryIndex: number | null;
+45   setActiveStoryIndex: (index: number | null) => void;
+46 
+47   // Themes
+48   theme: ThemeMode;
+49   setTheme: (theme: ThemeMode) => void;
+50   chatWallpaper: string;
+51   setChatWallpaper: (wallpaper: string) => void;
+52   fontSize: number;
+53   setFontSize: (size: number) => void;
+54 
+55   // Active Call Mode
+56   activeCall: { isVideo: boolean; chatName: string; avatar?: string } | null;
+57   startCall: (chatName: string, avatar?: string, isVideo?: boolean) => void;
+58   endCall: () => void;
+59 
+60   // AI Assistant Rewrite Trigger
+61   rewriteMessageWithAI: (text: string, style: string) => Promise<string>;
+62 }
+63 
+64 const TelegramContext = createContext<TelegramContextType | undefined>(undefined);
+65 
+66 export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+67   const { user } = useAuth();
+68   
+69   const [chats, setChats] = useState<Chat[]>(() => {
+70     const saved = localStorage.getItem('tg_chats');
+71     return saved ? JSON.parse(saved) : initialChats;
+72   });
+73 
+74   const [activeChatId, setActiveChatId] = useState<string | null>('chat_sleepwalkers');
+75   const [messages, setMessages] = useState<Record<string, Message[]>>(() => {
+76     const saved = localStorage.getItem('tg_messages');
+77     return saved ? JSON.parse(saved) : initialMessages;
+78   });
+79 
+80   const [stories, setStories] = useState<Story[]>(initialStories);
+81   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
+82 
+83   const [folders] = useState<ChatFolder[]>(initialFolders);
+84   const [activeFolderId, setActiveFolderId] = useState<string>('all');
+85   const [searchQuery, setSearchQuery] = useState<string>('');
+86   const [searchInChatMode, setSearchInChatMode] = useState<boolean>(false);
+87 
+88   const [theme, setTheme] = useState<ThemeMode>(() => {
+89     return (localStorage.getItem('tg_theme') as ThemeMode) || 'night';
+90   });
+91 
+92   const [chatWallpaper, setChatWallpaper] = useState<string>(() => {
+93     return localStorage.getItem('tg_wallpaper') || 'classic';
+94   });
+95 
+96   const [fontSize, setFontSize] = useState<number>(15);
+97   const [activeCall, setActiveCall] = useState<{ isVideo: boolean; chatName: string; avatar?: string } | null>(null);
+98 
+99   // Flag to avoid writing back initial data or snapshot loops
+100   const isInitiated = useRef(false);
+101 
+102   useEffect(() => {
+103     if (isFirebaseConfigured() && db) {
+104       let messagesLoaded = false;
+105       const unsubMessages = onSnapshot(doc(db, 'telegram_clone', 'messages'), (docSnap) => {
+106         if (docSnap.exists()) {
+107            setMessages(docSnap.data() as Record<string, Message[]>);
+108            messagesLoaded = true;
+109            isInitiated.current = true;
+110 
+111       } }, (error) => handleFirestoreError(error, OperationType.GET, "telegram_clone/messages"));
+112       const unsubChats = onSnapshot(doc(db, 'telegram_clone', 'chats'), (docSnap) => {
+113         if (docSnap.exists()) {
+114            setChats(docSnap.data().chats as Chat[]);
+115 
+116       } }, (error) => handleFirestoreError(error, OperationType.GET, "telegram_clone/messages"));
+117       // Fallback: If no doc exists after 2 seconds, allow local data to be written to Firebase
+118       setTimeout(() => {
+119         if (!messagesLoaded) isInitiated.current = true;
+120       }, 2000);
+121       return () => { unsubMessages(); unsubChats(); };
+122     }
+123   }, []);
+124 
+125   // Sync storage
+126   useEffect(() => {
+127     localStorage.setItem('tg_chats', JSON.stringify(chats));
+128     if (isInitiated.current && isFirebaseConfigured() && db) {
+129       setDoc(doc(db, 'telegram_clone', 'chats'), { chats }).catch(console.error);
+130     }
+131   }, [chats]);
+132 
+133   useEffect(() => {
+134     localStorage.setItem('tg_messages', JSON.stringify(messages));
+135     if (isInitiated.current && isFirebaseConfigured() && db) {
+136       setDoc(doc(db, 'telegram_clone', 'messages'), messages).catch(console.error);
+137     }
+138   }, [messages]);
+139 
+140   useEffect(() => {
+141     localStorage.setItem('tg_theme', theme);
+142   }, [theme]);
+143 
+144   useEffect(() => {
+145     localStorage.setItem('tg_wallpaper', chatWallpaper);
+146   }, [chatWallpaper]);
+147 
+148   const startCall = (chatName: string, avatar?: string, isVideo: boolean = false) => {
+149     setActiveCall({ chatName, avatar, isVideo });
+150   };
+151 
+152   const endCall = () => {
+153     setActiveCall(null);
+154   };
+155 
+156   const sendMessage = async (
+157     chatId: string,
+158     text: string,
+159     mediaType?: Message['mediaType'],
+160     mediaUrl?: string,
+161     poll?: Poll,
+162     replyToId?: string
+163   ) => {
+164     const now = new Date();
+165     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+166 
+167     let replyText = '';
+168     let replySender = '';
+169     if (replyToId && messages[chatId]) {
+170       const parentMsg = messages[chatId].find((m) => m.id === replyToId);
+171       if (parentMsg) {
+172         replyText = parentMsg.text.substring(0, 50);
+173         replySender = parentMsg.senderName;
+174       }
+175     }
+176 
+177     const newMsg: Message = {
+178       id: `m_${Date.now()}`,
+179       chatId,
+180       senderId: user?.id || 'user_me',
+181       senderName: user?.name || 'You',
+182       senderAvatar: user?.avatar,
+183       text,
+184       timestamp: timeStr,
+185       dateStr: 'Today',
+186       isOutgoing: true,
+187       isRead: false,
+188       isDelivered: true,
+189       mediaType,
+190       mediaUrl,
+191       poll,
+192       replyToMessageId: replyToId,
+193       replyToText: replyText,
+194       replyToSenderName: replySender,
+195     };
+196 
+197     setMessages((prev) => ({
+198       ...prev,
+199       [chatId]: [...(prev[chatId] || []), newMsg],
+200     }));
+201 
+202     // Update chat last message
+203     setChats((prev) =>
+204       prev.map((c) =>
+205         c.id === chatId
+206           ? {
+207               ...c,
+208               lastMessage: newMsg,
+209               unreadCount: 0,
+210     
+211         }: c
+212       )
+213     );
+214 
+215 
+216     // AI Bot Simulation
+217     if (chatId === 'chat_ai_bot' && text.trim()) {
+218       try {
+219         const aiTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+220         const aiMsg: Message = {
+221           id: `m_ai_${Date.now()}`,
+222           chatId: 'chat_ai_bot',
+223           senderId: 'bot',
+224           senderName: 'AI Bot',
+225           senderAvatar: 'https://ui-avatars.com/api/?name=AI&background=6366f1&color=fff&font-size=0.4',
+226           text: 'AI response to: ' + text,
+227           timestamp: aiTime,
+228           dateStr: 'Today',
+229           isOutgoing: false,
+230           isRead: true,
+231           isDelivered: true,
+232         };
+233         setTimeout(() => {
+234           setMessages((prev) => ({
+235             ...prev,
+236             chat_ai_bot: [...(prev.chat_ai_bot || []), aiMsg],
+237         }));
+238           setChats((prev) =>
+239             prev.map((c) =>
+240               c.id === 'chat_ai_bot'
+241                 ? { ...c, lastMessage: aiMsg }
+242                 : c
+243             )
+244           );
+245         }, 600);
+246       } catch (err) {
+247         console.error('AI Bot error handled gracefully:', err);
+248       }
+249     }
+250 
+251     // Support & Feature Bot handling
+252     if (chatId === 'chat_support_bot' && text.trim()) {
+253       const supTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+254       
+255       const botReplyMsg: Message = {
+256         id: `m_sup_resp_${Date.now()}`,
+257         chatId: 'chat_support_bot',
+258         senderId: 'bot_support',
+259         senderName: 'Telegram Bug & Feature Bot',
+260         senderAvatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80',
+261         text: `✅ **Rahmat! Sizning taklif/xatoligingiz qabul qilindi!**\n\n📌 **Yuborilgan matn:** "${text}"\n\n⚡ Admin ko'rib chiqib tasdiqlagach, tizim (sayt) avtomatik ravishda yangilanadi!`,
+262         timestamp: supTime,
+263         dateStr: 'Today',
+264         isOutgoing: false,
+265         isRead: true,
+266         isDelivered: true,
+267       };
+268 
+269       const adminNotificationMsg: Message = {
+270         id: `m_admin_notif_${Date.now()}`,
+271         chatId: 'saved_messages',
+272         senderId: 'bot_support',
+273         senderName: 'System',
+274         text: `🚀 **Yangi taklif / xatolik kelib tushdi!**\n\n👤 **Foydalanuvchi:** ${user?.name || 'Noma\'lum'} (@${user?.username || 'user'})\n💬 **Matn:** "${text}"\n⏱ **Vaqt:** ${supTime}`,
+275         timestamp: supTime,
+276         dateStr: 'Today',
+277         isOutgoing: false,
+278         isRead: true,
+279         isDelivered: true,
+280       };
+281 
+282       setTimeout(() => {
+283         setMessages((prev) => ({
+284           ...prev,
+285           chat_support_bot: [...(prev.chat_support_bot || []), botReplyMsg],
+286           saved_messages: [...(prev.saved_messages || []), adminNotificationMsg],
+287         }));
+288         setChats((prev) =>
+289           prev.map((c) => {
+290             if (c.id === 'chat_support_bot') return { ...c, lastMessage: botReplyMsg };
+291             if (c.id === 'saved_messages') return { ...c, lastMessage: adminNotificationMsg, unreadCount: (c.unreadCount || 0) + 1 };
+292             return c;
+293         })
+294         );
+295         confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+296       }, 700);
+297     }
+298   };
+299 
+300   const addReaction = (chatId: string, messageId: string, emoji: string) => {
+301     // Trigger particle confetti on screen if high-energy emoji
+302     if (['🔥', '🎉', '❤️', '🤩', '🚀'].includes(emoji)) {
+303       confetti({
+304         particleCount: 40,
+305         spread: 60,
+306         origin: { y: 0.8 },
+307       }, (error) => handleFirestoreError(error, OperationType.GET, "telegram_clone/messages"));
+308     }
+309 
+310     setMessages((prev) => {
+311       const chatMsgs = prev[chatId] || [];
+312       return {
+313         ...prev,
+314         [chatId]: chatMsgs.map((m) => {
+315           if (m.id === messageId) {
+316             const reactions = m.reactions || [];
+317             const existing = reactions.find((r) => r.emoji === emoji);
+318             // If clicking the same reaction emoji that is already active, toggle it off (remove it)
+319             if (existing) {
+320               return {
+321                 ...m,
+322                 reactions: [],
+323         };
+324     
+325             // Otherwise, replace existing reactions so there is strictly 1 active reaction on the message
+326             return {
+327               ...m,
+328               reactions: [{ emoji, count: 1, users: [user?.id || 'me'] }],
+329         };
+330   
+331           return m;
+332         }),
+333       };
+334     });
+335   };
+336 
+337   const votePoll = (chatId: string, messageId: string, optionId: string) => {
+338     setMessages((prev) => {
+339       const chatMsgs = prev[chatId] || [];
+340       return {
+341         ...prev,
+342         [chatId]: chatMsgs.map((m) => {
+343           if (m.id === messageId && m.poll) {
+344             const alreadyVoted = m.poll.options.some((o) => o.voters?.includes(user?.id || 'me'));
+345             if (alreadyVoted && !m.poll.multipleAnswers) return m;
+346 
+347             return {
+348               ...m,
+349               poll: {
+350                 ...m.poll,
+351                 totalVoters: (m.poll.totalVoters || 0) + 1,
+352                 options: m.poll.options.map((o) =>
+353                   o.id === optionId
+354                     ? { ...o, votes: o.votes + 1, voters: [...(o.voters || []), user?.id || 'me'] }
+355                     : o
+356                 ),
+357         },
+358         };
+359   
+360           return m;
+361         }),
+362       };
+363     });
+364   };
+365 
+366   const deleteMessage = (chatId: string, messageId: string, forEveryone?: boolean) => {
+367     setMessages((prev) => ({
+368       ...prev,
+369       [chatId]: (prev[chatId] || []).filter((m) => m.id !== messageId),
+370     }));
+371   };
+372 
+373   const pinMessage = (chatId: string, messageId: string) => {
+374     setMessages((prev) => ({
+375       ...prev,
+376       [chatId]: (prev[chatId] || []).map((m) => (m.id === messageId ? { ...m, isPinned: !m.isPinned } : m)),
+377     }));
+378   };
+379 
+380   const clearHistory = (chatId: string) => {
+381     setMessages((prev) => ({ ...prev, [chatId]: [] }));
+382   };
+383 
+384   const toggleMute = (chatId: string) => {
+385     setChats((prev) =>
+386       prev.map((c) => (c.id === chatId ? { ...c, isMuted: !c.isMuted } : c))
+387     );
+388   };
+389 
+390   const leaveChat = (chatId: string) => {
+391     setChats((prev) => prev.filter((c) => c.id !== chatId));
+392     setMessages((prev) => {
+393       const newMsgs = { ...prev };
+394       delete newMsgs[chatId];
+395       return newMsgs;
+396     });
+397     if (activeChatId === chatId) setActiveChatId(null);
+398   };
+399 
+400   const createNewChat = (name: string, type: Chat['type'], username?: string, description?: string, avatar?: string): Chat => {
+401     const newChat: Chat = {
+402       id: `chat_${Date.now()}`,
+403       name,
+404       type,
+405       avatar: avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${name}`,
+406       username: username || name.toLowerCase().replace(/\s+/g, '_'),
+407       unreadCount: 0,
+408       membersCount: type === 'group' || type === 'channel' ? 1 : undefined,
+409       description,
+410       folderIds: ['all'],
+411     };
+412     setChats((prev) => [newChat, ...prev]);
+413     setMessages((prev) => ({ ...prev, [newChat.id]: [] }));
+414     setActiveChatId(newChat.id);
+415     return newChat;
+416   };
+417 
+418   const addStory = (mediaUrl: string, caption?: string) => {
+419     const newStory: Story = {
+420       id: `story_${Date.now()}`,
+421       userId: user?.id || 'user_me',
+422       userName: user?.name || 'You',
+423       userAvatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+424       mediaUrl,
+425       mediaType: 'image',
+426       caption,
+427       timestamp: 'Just now',
+428       isUnread: false,
+429       likesCount: 0,
+430       viewsCount: 1,
+431     };
+432     setStories((prev) => [newStory, ...prev]);
+433   };
+434 
+435   const rewriteMessageWithAI = async (text: string, style: string): Promise<string> => {
+436     try {
+437       const res = await fetch('/api/ai/rewrite', {
+438         method: 'POST',
+439         headers: { 'Content-Type': 'application/json' },
+440         body: JSON.stringify({ text, style }),
+441       }, (error) => handleFirestoreError(error, OperationType.GET, "telegram_clone/messages"));
+442       const data = await res.json();
+443       return data.rewrittenText || text;
+444     } catch (err) {
+445       console.error('Failed to rewrite message:', err);
+446       return text;
+447     }
+448   };
+449 
+450   return (
+451     <TelegramContext.Provider
+452       value={{
+453         chats,
+454         activeChatId,
+455         setActiveChatId,
+456         messages,
+457         sendMessage,
+458         addReaction,
+459         votePoll,
+460         deleteMessage,
+461         pinMessage,
+462         createNewChat,
+463         clearHistory,
+464         leaveChat,
+465         toggleMute,
+466         folders,
+467         activeFolderId,
+468         setActiveFolderId,
+469         searchQuery,
+470         setSearchQuery,
+471         searchInChatMode,
+472         setSearchInChatMode,
+473         stories,
+474         addStory,
+475         activeStoryIndex,
+476         setActiveStoryIndex,
+477         theme,
+478         setTheme,
+479         chatWallpaper,
+480         setChatWallpaper,
+481         activeCall,
+482         startCall,
+483         endCall,
+484         rewriteMessageWithAI,
+485       }}
+486     >
+487       {children}
+488     </TelegramContext.Provider>
+489   );
+490 };
+491 
+492 export const useTelegram = () => {
+493   const context = React.useContext(TelegramContext);
+494   if (!context) {
+495     throw new Error('useTelegram must be used within a TelegramProvider');
+496   }
+497   return context;
+498 };

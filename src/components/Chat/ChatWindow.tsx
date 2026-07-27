@@ -16,8 +16,13 @@ import {
   Info,
   X,
   ArrowLeft,
+  UserPlus,
+  LogOut,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 import { useTelegram } from '../../context/TelegramContext';
+import { useAuth } from '../../context/AuthContext';
 import { MessageItem } from './MessageItem';
 import { MessageInput } from './MessageInput';
 import { UserProfileModal } from '../Modals/UserProfileModal';
@@ -29,7 +34,8 @@ interface ChatWindowProps {
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpenMiniApp }) => {
-  const { chats, activeChatId, setActiveChatId, messages, startCall, theme, setSearchInChatMode, clearHistory, leaveChat, toggleMute } = useTelegram();
+  const { user: currentUser } = useAuth();
+  const { chats, activeChatId, setActiveChatId, messages, startCall, theme, setSearchInChatMode, clearHistory, leaveChat, toggleMute, globalUsers, markChatAsRead, joinChat } = useTelegram();
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const [currentPinnedIndex, setCurrentPinnedIndex] = useState(0);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
@@ -41,8 +47,39 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
   const isLight = theme === 'light';
 
   const activeChat = chats.find((c) => c.id === activeChatId);
+  const myIds = [currentUser?.id, 'user_me'].filter(Boolean) as string[];
+  const isJoined = activeChat && (
+    (activeChat.type !== 'group' && activeChat.type !== 'channel')
+      ? true
+      : Boolean(activeChat.memberIds && myIds.some(id => activeChat.memberIds?.includes(id)))
+  );
+  const isChannelOwnerOrAdmin = activeChat && activeChat.type === 'channel'
+    ? Boolean(
+        (activeChat.creatorId && myIds.includes(activeChat.creatorId)) ||
+        (activeChat.adminIds && myIds.some(id => activeChat.adminIds?.includes(id)))
+      )
+    : true;
   const chatMessages = activeChatId ? messages[activeChatId] || [] : [];
   const pinnedMessages = chatMessages.filter((m) => m.isPinned);
+
+  useEffect(() => {
+    if (activeChatId) {
+      markChatAsRead(activeChatId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChatId, chatMessages.length]);
+
+  const getOtherUser = (chatId: string) => {
+    if (chatId.startsWith('private_')) {
+      const ids = chatId.replace('private_', '').split('_');
+      const otherId = ids.find(id => id !== currentUser?.id) || ids[0];
+      return globalUsers?.[otherId];
+    }
+    return null;
+  };
+
+  const displayAvatar = activeChat?.type === 'private' ? (getOtherUser(activeChat.id)?.avatar || activeChat?.avatar) : activeChat?.avatar;
+  const displayName = activeChat?.type === 'private' ? (getOtherUser(activeChat.id)?.name || activeChat?.name) : activeChat?.name;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -128,8 +165,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
           </button>
           <div className="relative shrink-0 cursor-pointer" onClick={() => setShowProfile(true)}>
             <img
-              src={activeChat.avatar || 'https://telegram.org/img/t_logo.png'}
-              alt={activeChat.name}
+              src={displayAvatar || 'https://telegram.org/img/t_logo.png'}
+              alt={displayName}
               className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border ${
                 isLight ? 'border-slate-200' : 'border-gray-700'
               }`}
@@ -143,7 +180,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
           <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setShowProfile(true)}>
             <div className="flex items-center gap-1.5">
               <h2 className={`text-sm sm:text-base font-bold truncate ${isLight ? 'text-slate-800' : 'text-white'}`}>
-                {activeChat.name}
+                {displayName}
               </h2>
               {activeChat.isVerified && (
                 <span className="bg-blue-600 text-white p-0.5 rounded-full text-[8px] shrink-0">
@@ -246,9 +283,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
                   <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Clear history
                 </button>
                 <div className={`my-1 border-b ${isLight ? 'border-slate-100' : 'border-white/10'}`} />
-                <button onClick={() => { setShowMoreMenu(false); leaveChat(activeChat.id); }} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] text-red-500 transition-colors ${isLight ? 'hover:bg-slate-100' : 'hover:bg-[#202b36]'}`}>
-                  <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> Leave {activeChat.type === 'group' || activeChat.type === 'channel' ? 'group' : 'chat'}
-                </button>
+                {isJoined ? (
+                  <button onClick={() => { setShowMoreMenu(false); leaveChat(activeChat.id); showToast(`Left ${activeChat.name}`); }} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] text-red-500 transition-colors ${isLight ? 'hover:bg-slate-100' : 'hover:bg-[#202b36]'}`}>
+                    <LogOut className="w-5 h-5 opacity-70" /> Leave {activeChat.type === 'channel' ? 'channel' : 'group'}
+                  </button>
+                ) : (
+                  <button onClick={() => { setShowMoreMenu(false); joinChat(activeChat.id); showToast(`Joined ${activeChat.name}`); }} className={`w-full flex items-center gap-4 px-4 py-2 text-[14px] text-sky-500 font-medium transition-colors ${isLight ? 'hover:bg-slate-100' : 'hover:bg-[#202b36]'}`}>
+                    <UserPlus className="w-5 h-5 opacity-70" /> Join {activeChat.type === 'channel' ? 'channel' : 'group'}
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -304,14 +347,50 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input Bar */}
+      {/* Message Input Bar or Join Button or Channel Restricted Bar */}
       <div className="z-10">
-        <MessageInput
-          chatId={activeChat.id}
-          replyToMessage={replyToMessage}
-          onCancelReply={() => setReplyToMessage(null)}
-          onOpenCreatePoll={onOpenCreatePoll}
-        />
+        {!isJoined && (activeChat.type === 'group' || activeChat.type === 'channel') ? (
+          <div className={`p-4 border-t ${isLight ? 'bg-white border-slate-200' : 'bg-[#17212b] border-[#0e1621]'} flex justify-center items-center`}>
+            <button
+              onClick={() => {
+                joinChat(activeChat.id);
+                showToast(`Joined ${activeChat.name}`);
+              }}
+              className="w-full max-w-sm py-3 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg uppercase text-sm tracking-wide flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+            >
+              <UserPlus className="w-5 h-5" />
+              Join {activeChat.type === 'channel' ? 'Channel' : 'Group'}
+            </button>
+          </div>
+        ) : activeChat.type === 'channel' && !isChannelOwnerOrAdmin ? (
+          <div className={`p-3.5 border-t ${isLight ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#17212b] border-[#0e1621] text-gray-200'} flex items-center justify-between gap-3 px-6 shadow-inner`}>
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-gray-400">
+              <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>Kanalda faqat yaratgan odam yozishi mumkin</span>
+            </div>
+            <button
+              onClick={() => {
+                toggleMute(activeChat.id);
+                showToast(activeChat.isMuted ? "Channel unmuted" : "Channel muted");
+              }}
+              className={`px-4 py-2 rounded-lg font-semibold text-xs tracking-wider uppercase transition-all flex items-center gap-2 cursor-pointer ${
+                activeChat.isMuted 
+                  ? 'bg-sky-500/10 text-sky-500 hover:bg-sky-500/20' 
+                  : 'bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-700 dark:text-white'
+              }`}
+            >
+              {activeChat.isMuted ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+              {activeChat.isMuted ? 'Muted' : 'Mute'}
+            </button>
+          </div>
+        ) : (
+          <MessageInput
+            chatId={activeChat.id}
+            replyToMessage={replyToMessage}
+            onCancelReply={() => setReplyToMessage(null)}
+            onOpenCreatePoll={onOpenCreatePoll}
+          />
+        )}
       </div>
 
       {toastMsg && (
@@ -320,6 +399,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
         </div>
       )}
       {/* User Profile Modal */}
+      {showProfile && (
+        <UserProfileModal
+          isOpen={showProfile}
+          onClose={() => setShowProfile(false)}
+          user={(activeChat.type === 'private' ? getOtherUser(activeChat.id) : null) || { id: activeChat.id, name: activeChat.name, username: activeChat.username, avatar: activeChat.avatar, membersCount: activeChat.membersCount, memberIds: activeChat.memberIds, type: activeChat.type, bio: activeChat.description } as any}
+        />
+      )}
     </div>
     </div>
   );

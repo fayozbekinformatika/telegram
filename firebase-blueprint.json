@@ -1,0 +1,31 @@
+{
+  "entities": {
+    "ChatsDocument": {
+      "title": "Chats Document",
+      "description": "A single document storing all chats for the telegram clone demo",
+      "type": "object",
+      "properties": {
+        "chats": {
+          "type": "array",
+          "description": "List of all chats"
+        }
+      }
+    },
+    "MessagesDocument": {
+      "title": "Messages Document",
+      "description": "A single document storing all messages for the telegram clone demo",
+      "type": "object",
+      "properties": {}
+    }
+  },
+  "firestore": {
+    "/telegram_clone/chats": {
+      "schema": { "$ref": "#/entities/ChatsDocument" },
+      "description": "Global chats document"
+    },
+    "/telegram_clone/messages": {
+      "schema": { "$ref": "#/entities/MessagesDocument" },
+      "description": "Global messages document"
+    }
+  }
+}

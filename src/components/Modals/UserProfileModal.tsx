@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, QrCode, ArrowLeft, Camera, User as UserIcon, Phone, AtSign, Megaphone, Bot, Palette, Gift, Plus } from 'lucide-react';
+import { X, QrCode, ArrowLeft, Camera, User as UserIcon, Phone, AtSign, Megaphone, Bot, Palette, Gift, Plus, BellOff, Sliders, LogOut, MoreHorizontal, Image as ImageIcon, FileText, UserPlus } from 'lucide-react';
 import { User } from '../../types/telegram';
 import { useTelegram } from '../../context/TelegramContext';
 import { useToast } from '../../context/ToastContext';
@@ -11,20 +11,52 @@ interface UserProfileModalProps {
   user: User | null;
 }
 
-// Tailwind safelist for dynamic colors
-const _safelist = 'border-red-500 border-orange-500 border-yellow-500 border-green-500 border-cyan-500 border-blue-500 border-indigo-500 border-purple-500 border-pink-500 border-rose-500 text-red-500 text-orange-500 text-yellow-500 text-green-500 text-cyan-500 text-blue-500 text-indigo-500 text-purple-500 text-pink-500 text-rose-500';
+interface GroupMember {
+  id: string;
+  name: string;
+  username?: string;
+  avatar?: string;
+  status?: string;
+  role?: string;
+}
+
+const knownUserProfiles: Record<string, { name: string; username?: string; avatar?: string; status?: string; role?: string }> = {
+  user_me: { name: 'Fayozchek Yusubhonov', username: 'fayozchek', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80', status: 'online' },
+  user_soliyev: { name: 'Soliyev Javlon', username: 'soliyev_j', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80', status: 'last seen 12 minutes ago' },
+  user_sayida: { name: 'Sayida 🐚', username: 'sayida_s', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', status: 'online' },
+  user_kallmeryan: { name: 'kallmeryan', username: 'kallmeryan', avatar: 'https://ui-avatars.com/api/?name=K&background=a855f7&color=fff&font-size=0.4', status: 'last seen 2 hours ago' },
+  user_deedo: { name: 'deedo', username: 'deedo_admin', avatar: 'https://ui-avatars.com/api/?name=D&background=ec4899&color=fff&font-size=0.4', status: 'online', role: 'owner' },
+  user_tg_tips: { name: 'Telegram Tips', username: 'telegram', avatar: 'https://ui-avatars.com/api/?name=TT&background=000&color=fff&font-size=0.4', status: 'service notification' },
+  user_islam: { name: '1slam', username: 'islam_owner', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', status: 'last seen 22 minutes ago', role: 'admin' },
+  user_abdurahimov: { name: 'Yusuf Abdurahimov', username: 'yusuf_a', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', status: 'last seen 30 minutes ago' },
+  user_abdulloh: { name: 'Abdulloh', username: 'abdulloh_m', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150', status: 'last seen 1 hour ago' },
+  user_khanxadjayeva: { name: 'khanxadjayeva_m', username: 'khanxadjayeva', avatar: 'https://ui-avatars.com/api/?name=KM&background=059669&color=fff&font-size=0.4', status: 'last seen 4 hours ago' },
+};
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, user }) => {
-  const { theme } = useTelegram();
+  const { theme, globalUsers, toggleMute, leaveChat, joinChat, chats } = useTelegram();
   const { showToast } = useToast();
   const { user: authUser, updateUserProfile } = useAuth();
-  // Use authUser if available to show real updated data
-  const displayUser = authUser ? { ...user, ...authUser } : user;
   
+  const [selectedMemberUser, setSelectedMemberUser] = useState<User | null>(null);
+
+  // Find live chat if user prop represents a group/channel chat
+  const liveChat = chats?.find(c => c.id === user?.id || (user?.username && c.username?.toLowerCase() === user.username.toLowerCase()));
+  const activeChatOrUser = liveChat || user;
+  const myIds = [authUser?.id, 'user_me'].filter(Boolean) as string[];
+  const isJoinedGroup = activeChatOrUser && (
+    (activeChatOrUser.type !== 'group' && activeChatOrUser.type !== 'channel')
+      ? true
+      : Boolean(activeChatOrUser.memberIds && myIds.some(id => activeChatOrUser.memberIds?.includes(id)))
+  );
+
+  const displayUser = selectedMemberUser 
+    ? (selectedMemberUser.id === authUser?.id ? authUser : (globalUsers?.[selectedMemberUser.id] || selectedMemberUser))
+    : (user?.id === authUser?.id ? authUser : (user?.id && globalUsers?.[user.id] ? globalUsers[user.id] : activeChatOrUser));
+
   const [editNameFirst, setEditNameFirst] = useState(displayUser?.name?.split(' ')[0] || '');
   const [editNameLast, setEditNameLast] = useState(displayUser?.name?.split(' ').slice(1).join(' ') || '');
   const [editUsername, setEditUsername] = useState(displayUser?.username || '');
-
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeModal, setActiveModal] = useState<'none' | 'name' | 'username' | 'channel' | 'automation' | 'color' | 'birthday' | 'bio'>('none');
   const [editBio, setEditBio] = useState(displayUser?.bio || '');
@@ -33,6 +65,96 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   const [editBirthday, setEditBirthday] = useState<Date | null>(displayUser?.birthday ? new Date(displayUser.birthday) : null);
   const [colorTab, setColorTab] = useState<'profile' | 'name'>('profile');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const isGroupOrChannel = (displayUser as any)?.type === 'group' || (displayUser as any)?.type === 'channel';
+
+  const membersList: GroupMember[] = React.useMemo(() => {
+    const rootTarget = liveChat || user;
+    if (!rootTarget || ((rootTarget as any)?.type !== 'group' && (rootTarget as any)?.type !== 'channel')) return [];
+    
+    // Strictly take ONLY members who are actually in memberIds of this group/chat
+    const rawIds: string[] = (rootTarget as any).memberIds || [];
+    
+    const resolvedList: GroupMember[] = [];
+    const seenKeys = new Set<string>();
+
+    const canonicalAuthId = authUser?.id || 'user_me';
+
+    rawIds.forEach((id) => {
+      // Check if this ID represents the current user
+      const isMe = id === 'user_me' || id === authUser?.id || (globalUsers?.[id]?.email && authUser?.email && globalUsers[id].email === authUser.email);
+
+      if (isMe) {
+        if (seenKeys.has('CURRENT_USER_CANONICAL')) return;
+        seenKeys.add('CURRENT_USER_CANONICAL');
+        seenKeys.add('user_me');
+        if (authUser?.id) seenKeys.add(authUser.id);
+
+        resolvedList.push({
+          id: canonicalAuthId,
+          name: authUser?.name || 'Fayozchek Yusubhonov',
+          username: authUser?.username || 'fayozchek',
+          avatar: authUser?.avatar,
+          status: 'online',
+        });
+        return;
+      }
+
+      if (seenKeys.has(id)) return;
+      seenKeys.add(id);
+
+      const gUser = globalUsers?.[id];
+      if (gUser) {
+        if (authUser?.email && gUser.email === authUser.email) return;
+        resolvedList.push({
+          id: gUser.id,
+          name: gUser.name || gUser.username || id,
+          username: gUser.username,
+          avatar: gUser.avatar,
+          status: gUser.status || 'last seen recently',
+        });
+        return;
+      }
+
+      const known = knownUserProfiles[id];
+      if (known) {
+        resolvedList.push({
+          id,
+          name: known.name,
+          username: known.username,
+          avatar: known.avatar,
+          status: known.status,
+          role: known.role,
+        });
+        return;
+      }
+
+      const cleanName = id === 'user_tg_tips' ? 'Telegram Tips' : id.replace(/^user_/, '');
+      resolvedList.push({
+        id,
+        name: cleanName,
+        username: cleanName.toLowerCase().replace(/\s+/g, '_'),
+        status: 'last seen recently',
+      });
+    });
+
+    return resolvedList;
+  }, [liveChat, user, globalUsers, authUser]);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setSelectedMemberUser(null);
+      setEditNameFirst(displayUser?.name?.split(' ')[0] || '');
+      setEditNameLast(displayUser?.name?.split(' ').slice(1).join(' ') || '');
+      setEditUsername(displayUser?.username || '');
+      setEditBio(displayUser?.bio || '');
+      setActiveProfileColor(displayUser?.profileColor || 'bg-blue-500');
+      setActiveNameColor(displayUser?.nameColor || 'bg-yellow-500');
+      setEditBirthday(displayUser?.birthday ? new Date(displayUser.birthday) : null);
+      setIsEditMode(false);
+      setActiveModal('none');
+    }
+  }, [isOpen, user?.id]);
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -572,64 +694,242 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={handleClose} />
-      <div className={`relative w-[340px] rounded-xl shadow-2xl z-10 animate-in fade-in zoom-in-95 flex flex-col overflow-hidden ${bgModal}`}>
+      <div className={`relative w-[360px] max-h-[85vh] rounded-xl shadow-2xl z-10 animate-in fade-in zoom-in-95 flex flex-col overflow-hidden ${bgModal}`}>
+        
+        {/* Top Controls */}
+        <div className="absolute top-3 left-3 flex items-center gap-2 z-20">
+          {selectedMemberUser && (
+            <button 
+              onClick={() => setSelectedMemberUser(null)} 
+              className="p-1.5 rounded-full hover:bg-black/10 transition-colors flex items-center gap-1 text-white"
+              title="Back to group"
+            >
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+          )}
+        </div>
         <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
-          <button onClick={() => setIsEditMode(true)} className="p-2 rounded-full hover:bg-black/10 transition-colors">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white">
-              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-            </svg>
-          </button>
-          <button onClick={handleClose} className="p-2 rounded-full hover:bg-black/10 transition-colors">
+          {!isGroupOrChannel && (displayUser.id === authUser?.id) && (
+            <button onClick={() => setIsEditMode(true)} className="p-1.5 rounded-full hover:bg-black/10 transition-colors" title="Edit Profile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+              </svg>
+            </button>
+          )}
+          <button onClick={handleClose} className="p-1.5 rounded-full hover:bg-black/10 transition-colors">
             <X className="w-5 h-5 text-white" />
           </button>
         </div>
+
+        {/* Header with Avatar, Name, Subtitle, and Group Action buttons */}
         <div className={`pt-6 pb-4 px-4 relative flex flex-col items-center ${bgHeader}`}>
-          <div className="w-24 h-24 rounded-full overflow-hidden bg-blue-600 flex items-center justify-center text-4xl font-bold mb-3 border-2 border-[#1e2c3a]">
+          <div className="w-20 h-20 rounded-full overflow-hidden bg-blue-600 flex items-center justify-center text-3xl font-bold mb-3 border-2 border-[#1e2c3a] shrink-0 shadow-md">
             {displayUser.avatar ? (
               <img src={displayUser.avatar} alt={displayUser.name} className="w-full h-full object-cover" />
             ) : (
-              (displayUser.name || 'U')[0]
+              <span className="text-white">{(displayUser.name || 'U')[0]}</span>
             )}
           </div>
-          <h2 className="text-xl font-medium text-white mb-0.5">{displayUser.name}</h2>
-          <p className="text-sm text-sky-400">online</p>
+          <h2 className="text-lg font-semibold text-white mb-0.5 text-center px-4 line-clamp-1">{displayUser.name}</h2>
+          <p className="text-xs text-sky-300 mb-3">
+            {isGroupOrChannel ? `${membersList.length} ${membersList.length === 1 ? 'member' : 'members'}` : (displayUser.status || 'online')}
+          </p>
+
+          {/* Group Action Buttons (Mute, Manage, Leave, More) */}
+          {isGroupOrChannel && (
+            <div className="flex items-center justify-center gap-6 w-full pt-2 pb-1">
+              <button
+                onClick={() => {
+                  toggleMute(displayUser.id);
+                  showToast("Mute settings updated");
+                }}
+                className="flex flex-col items-center gap-1.5 text-white/80 hover:text-white transition-colors group"
+              >
+                <div className="p-2.5 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                  <BellOff className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-medium">Mute</span>
+              </button>
+
+              <button
+                onClick={() => showToast("Manage group settings")}
+                className="flex flex-col items-center gap-1.5 text-white/80 hover:text-white transition-colors group"
+              >
+                <div className="p-2.5 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                  <Sliders className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-medium">Manage</span>
+              </button>
+
+              {isJoinedGroup ? (
+                <button
+                  onClick={() => {
+                    const targetGroupId = liveChat?.id || user?.id;
+                    if (targetGroupId) {
+                      leaveChat(targetGroupId);
+                      showToast("Left group");
+                      handleClose();
+                    }
+                  }}
+                  className="flex flex-col items-center gap-1.5 text-white/80 hover:text-white transition-colors group cursor-pointer"
+                >
+                  <div className="p-2.5 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                    <LogOut className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-medium">Leave</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    const targetGroupId = liveChat?.id || user?.id;
+                    if (targetGroupId) {
+                      joinChat(targetGroupId);
+                      showToast("Joined group");
+                    }
+                  }}
+                  className="flex flex-col items-center gap-1.5 text-sky-300 hover:text-white transition-colors group cursor-pointer"
+                >
+                  <div className="p-2.5 rounded-full bg-sky-500 group-hover:bg-sky-400 text-white transition-colors">
+                    <UserPlus className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-medium text-sky-300">Join</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => showToast("More options")}
+                className="flex flex-col items-center gap-1.5 text-white/80 hover:text-white transition-colors group"
+              >
+                <div className="p-2.5 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                  <MoreHorizontal className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-medium">More</span>
+              </button>
+            </div>
+          )}
         </div>
-        <div className={`p-4 flex flex-col ${isLight ? 'bg-white' : 'bg-[#17212b]'}`}>
-          <div className="flex flex-col py-2">
-            <span className={`text-[15px] font-medium ${isLight ? 'text-slate-800' : 'text-gray-100'}`}>
-              {displayUser.bio || 'Bio'}
-            </span>
-            <span className={`text-[13px] ${textSub}`}>
-              Bio
-            </span>
-          </div>
-          <div className="flex flex-col py-2">
-            <span className={`text-[15px] font-medium ${isLight ? 'text-slate-800' : 'text-gray-100'}`}>
-              fayozchekyusubhonov@gmail.com
-            </span>
-            <span className={`text-[13px] ${textSub}`}>
-              Google (Email)
-            </span>
-          </div>
+
+        {/* Content Body */}
+        <div className={`p-4 flex flex-col flex-1 overflow-y-auto no-scrollbar divide-y ${isLight ? 'bg-white divide-slate-100' : 'bg-[#17212b] divide-gray-800/40'}`}>
           
-          <div className="flex items-center justify-between py-2 cursor-pointer group">
-            <div className="flex flex-col">
-              <span className="text-[15px] text-sky-400 font-medium group-hover:underline">
-                @{displayUser.username || 'fayozchek'}
+          {/* Description or Bio */}
+          {displayUser.bio && (
+            <div className="pb-3">
+              <span className={`text-[15px] font-medium ${isLight ? 'text-slate-800' : 'text-gray-100'} block`}>
+                {displayUser.bio}
               </span>
-              <span className={`text-[13px] ${textSub}`}>
-                Username
+              <span className={`text-xs ${textSub} mt-0.5 block`}>
+                {isGroupOrChannel ? 'Description' : 'Bio'}
               </span>
             </div>
-            <button className={`p-2 rounded-lg transition-colors ${isLight ? 'hover:bg-slate-100' : 'hover:bg-[#202b36]'}`}>
-              <QrCode className="w-6 h-6 text-sky-400" />
-            </button>
-          </div>
-        </div>
-        <div className={`px-4 py-8 text-center border-t ${borderCol}`}>
-           <p className={`text-sm ${textSub}`}>
-             Your stories will be here.
-           </p>
+          )}
+
+          {/* Media counters for groups */}
+          {isGroupOrChannel && (
+            <div className="py-3 flex items-center gap-6 text-sm">
+              <div onClick={() => showToast("1 photo in media gallery")} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+                <ImageIcon className="w-4.5 h-4.5 text-sky-500" />
+                <span className={`font-medium ${isLight ? 'text-slate-800' : 'text-gray-200'}`}>1 photo</span>
+              </div>
+              <div onClick={() => showToast("1 file shared")} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+                <FileText className="w-4.5 h-4.5 text-sky-500" />
+                <span className={`font-medium ${isLight ? 'text-slate-800' : 'text-gray-200'}`}>1 file</span>
+              </div>
+            </div>
+          )}
+
+          {/* Members list section */}
+          {isGroupOrChannel ? (
+            <div className="pt-3 flex flex-col">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold text-sky-500 uppercase tracking-wider">
+                  {membersList.length} {membersList.length === 1 ? 'MEMBER' : 'MEMBERS'}
+                </span>
+                <button
+                  onClick={() => showToast("Add member wizard coming soon")}
+                  className="p-1 rounded hover:bg-black/10 text-sky-500 transition-colors flex items-center gap-1 text-xs font-semibold"
+                  title="Add member"
+                >
+                  <UserPlus className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                {membersList.map((member) => (
+                  <div 
+                    key={member.id} 
+                    onClick={() => {
+                      let u: User;
+                      if (member.id === authUser?.id) {
+                        u = authUser;
+                      } else if (globalUsers?.[member.id]) {
+                        u = globalUsers[member.id];
+                      } else {
+                        u = {
+                          id: member.id,
+                          name: member.name,
+                          username: member.username || member.name.toLowerCase().replace(/\s+/g, '_'),
+                          avatar: member.avatar,
+                          bio: member.id === authUser?.id ? authUser?.bio : 'Group member',
+                          status: member.status || 'online',
+                        } as User;
+                      }
+                      setSelectedMemberUser(u);
+                    }}
+                    className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-blue-600 flex items-center justify-center shrink-0">
+                        {member.avatar ? (
+                          <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-white font-semibold">{(member.name || 'U')[0]}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className={`text-sm font-medium truncate ${isLight ? 'text-slate-800' : 'text-gray-100'}`}>
+                          {member.name}
+                        </span>
+                        <span className={`text-xs ${member.status === 'online' ? 'text-sky-400 font-medium' : textSub}`}>
+                          {member.status || 'last seen recently'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {member.role === 'owner' && (
+                      <span className="text-[10px] uppercase font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded shrink-0">
+                        owner
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* User profile info */
+            <div className="py-2 flex flex-col gap-3">
+              {displayUser.email && (
+                <div className="flex flex-col">
+                  <span className={`text-[15px] font-medium ${isLight ? 'text-slate-800' : 'text-gray-100'}`}>
+                    {displayUser.email}
+                  </span>
+                  <span className={`text-[13px] ${textSub}`}>Google (Email)</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between cursor-pointer group">
+                <div className="flex flex-col">
+                  <span className="text-[15px] text-sky-400 font-medium group-hover:underline">
+                    @{displayUser.username || 'fayozchek'}
+                  </span>
+                  <span className={`text-[13px] ${textSub}`}>Username</span>
+                </div>
+                <button className={`p-2 rounded-lg transition-colors ${isLight ? 'hover:bg-slate-100' : 'hover:bg-[#202b36]'}`}>
+                  <QrCode className="w-6 h-6 text-sky-400" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
