@@ -57,21 +57,13 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const saved = localStorage.getItem('tg_chats');
     const rawChats: Chat[] = saved ? JSON.parse(saved) : initialChats;
     return rawChats.map(c => {
-      if (c.type === 'group' || c.type === 'channel') {
-        if (!c.memberIds) {
-          if (c.id === 'chat_sleepwalkers') {
-            return { ...c, memberIds: ['user_me', 'user_tg_tips', 'user_soliyev', 'user_sayida', 'user_kallmeryan', 'user_deedo'] };
-          } else if (c.id === 'chat_hitler') {
-            return { ...c, memberIds: ['user_deedo'] };
-          } else {
-            return { ...c, memberIds: [] };
-          }
-        }
+      if ((c.type === 'group' || c.type === 'channel') && !c.memberIds) {
+        return { ...c, memberIds: [] };
       }
       return c;
     });
   });
-  const [activeChatId, setActiveChatIdState] = useState<string | null>('chat_sleepwalkers');
+  const [activeChatId, setActiveChatIdState] = useState<string | null>('chat_saved');
   
   const setActiveChatId = (id: string | null) => {
     setActiveChatIdState(id);
@@ -135,13 +127,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
              const normalized = data.map(c => {
                if (c.type === 'group' || c.type === 'channel') {
                  if (!c.memberIds || !Array.isArray(c.memberIds)) {
-                   if (c.id === 'chat_sleepwalkers') {
-                     return { ...c, memberIds: ['user_me', 'user_tg_tips', 'user_soliyev', 'user_sayida', 'user_kallmeryan', 'user_deedo'] };
-                   } else if (c.id === 'chat_hitler') {
-                     return { ...c, memberIds: ['user_deedo'] };
-                   } else {
-                     return { ...c, memberIds: [] };
-                   }
+                   return { ...c, memberIds: [] };
                  }
                }
                return c;

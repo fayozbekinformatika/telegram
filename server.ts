@@ -5,7 +5,7 @@ import { GoogleGenAI } from '@google/genai';
 import crypto from 'crypto';
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
