@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu, Search, Lock, ShieldCheck, Sparkles, Plus, Globe } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { ToastProvider } from './context/ToastContext';
+import { ToastProvider, useToast } from './context/ToastContext';
 import { TelegramProvider, useTelegram } from './context/TelegramContext';
 import { ChatFolderBar } from './components/Sidebar/ChatFolderBar';
 import { StoriesBar } from './components/Sidebar/StoriesBar';
@@ -21,8 +21,9 @@ import { CallsModal } from './components/Modals/CallsModal';
 import { LoginScreen } from './components/Auth/LoginScreen';
 
 const TelegramMainApp: React.FC = () => {
-  const { searchQuery, setSearchQuery, theme, activeChatId, searchInChatMode, setSearchInChatMode } = useTelegram();
+  const { searchQuery, setSearchQuery, theme, activeChatId, searchInChatMode, setSearchInChatMode, joinChat, setActiveChatId, chats } = useTelegram();
   const { lockApp, isPasscodeLocked, passcode, isAuthenticated } = useAuth();
+  const { showToast } = useToast();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -33,6 +34,25 @@ const TelegramMainApp: React.FC = () => {
   const [isCreatePollOpen, setIsCreatePollOpen] = useState(false);
   const [isMiniAppOpen, setIsMiniAppOpen] = useState(false);
   const [newChatType, setNewChatType] = useState<'group' | 'channel' | 'secret' | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const joinParam = searchParams.get('join');
+    
+    if (joinParam) {
+      joinChat(joinParam);
+      
+      const matchedChat = chats.find(c => c.id === joinParam || (c.username && c.username.toLowerCase() === joinParam.toLowerCase()));
+      if (matchedChat) {
+        setActiveChatId(matchedChat.id);
+        showToast(`Joined ${matchedChat.name}`);
+      }
+
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, [isAuthenticated, chats]);
 
   if (!isAuthenticated) {
     return <LoginScreen />;

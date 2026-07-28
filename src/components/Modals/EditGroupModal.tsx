@@ -23,7 +23,13 @@ export const EditGroupModal: React.FC<EditGroupModalProps> = ({ isOpen, onClose,
   const [groupName, setGroupName] = useState(chat.name);
   const [description, setDescription] = useState(chat.description || '');
   const [isPublic, setIsPublic] = useState(chat.isPublic || false);
-  const [inviteLink, setInviteLink] = useState(chat.inviteLink || (chat.username ? `t.me/${chat.username}` : `t.me/+${chat.id.substring(0, 12)}`));
+  const getBaseLink = () => {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/?join=`;
+    }
+    return 'https://app.com/?join=';
+  };
+  const [inviteLink, setInviteLink] = useState(chat.inviteLink || (chat.username ? `${getBaseLink()}${chat.username}` : `${getBaseLink()}${chat.id.substring(0, 12)}`));
   const [restrictSavingContent, setRestrictSavingContent] = useState(chat.restrictSavingContent || false);
   const [historyVisible, setHistoryVisible] = useState(chat.chatHistoryVisible ?? true);
   const [topicsEnabled, setTopicsEnabled] = useState(chat.topicsEnabled || false);
@@ -207,11 +213,11 @@ export const EditGroupModal: React.FC<EditGroupModalProps> = ({ isOpen, onClose,
            <h3 className={`text-sm font-medium mb-2 ${textSub}`}>Link</h3>
            <div className={`rounded-xl p-3 ${isLight ? 'bg-slate-50' : 'bg-[#202b36]'}`}>
              <div className="flex items-center">
-               <span className={textMain}>t.me/</span>
+               <span className={textMain}>{getBaseLink()}</span>
                <input 
                  type="text" 
-                 value={inviteLink.replace('t.me/', '')} 
-                 onChange={(e) => setInviteLink('t.me/' + e.target.value)}
+                 value={inviteLink.replace(getBaseLink(), '')} 
+                 onChange={(e) => setInviteLink(getBaseLink() + e.target.value)}
                  className={`flex-1 bg-transparent border-none outline-none ${textMain}`}
                  placeholder="link"
                />
