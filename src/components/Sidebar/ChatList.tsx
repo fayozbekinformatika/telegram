@@ -2,7 +2,7 @@ import React from 'react';
 import { Search, Pin, CheckCheck, Lock, Bot, Radio, Users, Check, Sparkles } from 'lucide-react';
 import { useTelegram } from '../../context/TelegramContext';
 import { useAuth } from '../../context/AuthContext';
-import { Chat } from '../../types/telegram';
+import { Chat, User } from '../../types/telegram';
 
 export const ChatList: React.FC = () => {
   const { user: currentUser } = useAuth();
@@ -64,7 +64,7 @@ export const ChatList: React.FC = () => {
 
   const searchGlobalUsers = React.useMemo(() => {
     if (!searchQuery.trim()) return [];
-    return Object.values(globalUsers).filter(u => {
+    return (Object.values(globalUsers) as User[]).filter(u => {
       if (myIds.includes(u.id)) return false;
       if (chats.some(c => c.type === 'private' && (
         c.participantIds?.includes(u.id) ||
@@ -98,7 +98,7 @@ export const ChatList: React.FC = () => {
       if (otherId && globalUsers?.[otherId]) return globalUsers[otherId];
     }
     if (chatId.startsWith('private_')) {
-      const otherUser = Object.values(globalUsers || {}).find(
+      const otherUser = (Object.values(globalUsers) as User[]).find(
         u => !myIds.includes(u.id) && chatId.includes(u.id)
       );
       if (otherUser) return otherUser;

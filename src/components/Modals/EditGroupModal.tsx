@@ -29,7 +29,7 @@ export const EditGroupModal: React.FC<EditGroupModalProps> = ({ isOpen, onClose,
     }
     return 'https://app.com/?join=';
   };
-  const [inviteLink, setInviteLink] = useState(chat.inviteLink || (chat.username ? `${getBaseLink()}${chat.username}` : `${getBaseLink()}${chat.id.substring(0, 12)}`));
+  const [inviteLink, setInviteLink] = useState(chat.inviteLink || (chat.username ? `${getBaseLink()}${chat.username}` : `${getBaseLink()}${chat.id}`));
   const [restrictSavingContent, setRestrictSavingContent] = useState(chat.restrictSavingContent || false);
   const [historyVisible, setHistoryVisible] = useState(chat.chatHistoryVisible ?? true);
   const [topicsEnabled, setTopicsEnabled] = useState(chat.topicsEnabled || false);

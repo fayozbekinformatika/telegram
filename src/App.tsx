@@ -41,12 +41,9 @@ const TelegramMainApp: React.FC = () => {
     const joinParam = searchParams.get('join');
     
     if (joinParam) {
-      joinChat(joinParam);
-      
-      const matchedChat = chats.find(c => c.id === joinParam || (c.username && c.username.toLowerCase() === joinParam.toLowerCase()));
-      if (matchedChat) {
-        setActiveChatId(matchedChat.id);
-        showToast(`Joined ${matchedChat.name}`);
+      const result = joinChat(joinParam);
+      if (result) {
+        showToast(`Joined ${result.name}`);
       }
 
       const newUrl = window.location.pathname;

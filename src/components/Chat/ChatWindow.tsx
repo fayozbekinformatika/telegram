@@ -26,7 +26,7 @@ import { useAuth } from '../../context/AuthContext';
 import { MessageItem } from './MessageItem';
 import { MessageInput } from './MessageInput';
 import { UserProfileModal } from '../Modals/UserProfileModal';
-import { Message } from '../../types/telegram';
+import { Message, User } from '../../types/telegram';
 
 interface ChatWindowProps {
   onOpenCreatePoll: () => void;
@@ -80,7 +80,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
       if (otherId && globalUsers?.[otherId]) return globalUsers[otherId];
     }
     if (chatId.startsWith('private_')) {
-      const otherUser = Object.values(globalUsers || {}).find(
+      const otherUser = (Object.values(globalUsers) as User[]).find(
         u => !myIds.includes(u.id) && chatId.includes(u.id)
       );
       if (otherUser) return otherUser;

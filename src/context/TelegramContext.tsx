@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { Chat, Message, Story, ChatFolder, ThemeMode, Reaction, Poll } from '../types/telegram';
+import { Chat, Message, Story, ChatFolder, ThemeMode, Reaction, Poll, User, ChatType } from '../types/telegram';
 import { initialChats, initialMessages, initialStories, initialFolders } from '../data/initialData';
 import { useAuth } from './AuthContext';
 import confetti from 'canvas-confetti';
@@ -18,11 +18,11 @@ interface TelegramContextType {
   deleteMessage: (chatId: string, messageId: string, forEveryone?: boolean) => void;
   pinMessage: (chatId: string, messageId: string) => void;
   markChatAsRead: (chatId: string) => void;
-  createNewChat: (name: string, type: Chat['type'], username?: string, description?: string, avatar?: string) => Chat;
+  createNewChat: (name: string, type: ChatType, username?: string, description?: string, avatar?: string) => Chat;
   updateChat: (chatId: string, updates: Partial<Chat>) => void;
   clearHistory: (chatId: string) => void;
   leaveChat: (chatId: string) => void;
-  joinChat: (chatId: string) => void;
+  joinChat: (chatId: string) => { id: string; name: string; } | void;
   toggleMute: (chatId: string) => void;
   folders: ChatFolder[];
   activeFolderId: string;
@@ -240,7 +240,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!targetChat) {
       let targetUser = globalUsers[chatId];
       if (!targetUser) {
-        targetUser = Object.values(globalUsers).find(u => chatId.includes(u.id));
+        targetUser = (Object.values(globalUsers) as User[]).find(u => chatId.includes(u.id));
       }
       const chatName = targetUser ? targetUser.name : 'User';
       const avatar = targetUser ? targetUser.avatar : `https://api.dicebear.com/7.x/identicon/svg?seed=${chatId}`;
@@ -425,34 +425,63 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const primaryUserId = user?.id || 'user_me';
     const myIds = [user?.id, 'user_me'].filter(Boolean) as string[];
 
-    let targetType: Chat['type'] = 'group';
+    let targetType: ChatType = 'group';
+    let matchedChatId = chatId;
+    let newChatName = 'Joined Group';
 
-    setChats(prev => prev.map(c => {
-      const isMatch = c.id === chatId || (c.username && c.username.toLowerCase() === chatId.toLowerCase());
-      if (isMatch) {
-        targetType = c.type;
-        const currentMembers = c.memberIds || [];
-        const wasMember = myIds.some(id => currentMembers.includes(id));
-        const cleanMembers = currentMembers.filter(id => !myIds.includes(id));
-        cleanMembers.push(primaryUserId);
-        const newCount = wasMember ? (c.membersCount || cleanMembers.length) : ((c.membersCount || currentMembers.length) + 1);
-        return {
-          ...c,
-          memberIds: cleanMembers,
-          membersCount: newCount,
+    setChats(prev => {
+      let found = false;
+      const newChats = prev.map(c => {
+        const isMatch = c.id === chatId || (c.username && c.username.toLowerCase() === chatId.toLowerCase());
+        if (isMatch) {
+          found = true;
+          targetType = c.type;
+          matchedChatId = c.id;
+          newChatName = c.name;
+          const currentMembers = c.memberIds || [];
+          const wasMember = myIds.some(id => currentMembers.includes(id));
+          const cleanMembers = currentMembers.filter(id => !myIds.includes(id));
+          cleanMembers.push(primaryUserId);
+          const newCount = wasMember ? (c.membersCount || cleanMembers.length) : ((c.membersCount || currentMembers.length) + 1);
+          return {
+            ...c,
+            memberIds: cleanMembers,
+            membersCount: newCount,
+          };
+        }
+        return c;
+      });
+
+      if (!found) {
+        const isUsername = !chatId.startsWith('chat_');
+        const newId = isUsername ? `chat_${Date.now()}` : chatId;
+        matchedChatId = newId;
+        newChatName = isUsername ? `@${chatId}` : 'Joined Group';
+        const newChat: Chat = {
+          id: newId,
+          name: newChatName,
+          type: 'group',
+          username: isUsername ? chatId : undefined,
+          unreadCount: 0,
+          membersCount: 2,
+          memberIds: [primaryUserId, 'admin_1'],
+          creatorId: 'admin_1',
+          adminIds: ['admin_1'],
+          folderIds: ['all']
         };
+        newChats.unshift(newChat);
       }
-      return c;
-    }));
+      return newChats;
+    });
 
     const now = new Date();
     const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     const joinSystemMsg: Message = {
       id: `m_join_${Date.now()}`,
-      chatId,
+      chatId: matchedChatId,
       senderId: 'system',
       senderName: '',
-      text: targetType === 'channel' ? 'You subscribed to this channel' : 'You joined the group',
+      text: (targetType as string) === 'channel' ? 'You subscribed to this channel' : 'You joined the group',
       timestamp,
       dateStr: 'Today',
       isOutgoing: false,
@@ -462,17 +491,18 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setMessages(prev => ({
       ...prev,
-      [chatId]: [...(prev[chatId] || []), joinSystemMsg],
+      [matchedChatId]: [...(prev[matchedChatId] || []), joinSystemMsg],
     }));
 
-    setActiveChatIdState(chatId);
+    setActiveChatIdState(matchedChatId);
+    return { id: matchedChatId, name: newChatName };
   };
 
   const leaveChat = (chatId: string) => {
     const currentUserId = user?.id;
     const myIds = [currentUserId, 'user_me'].filter(Boolean) as string[];
 
-    let targetType: Chat['type'] = 'group';
+    let targetType: ChatType = 'group';
 
     setChats(prev => prev.map(c => {
       const isMatch = c.id === chatId || (c.username && c.username.toLowerCase() === chatId.toLowerCase());
@@ -496,7 +526,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       chatId,
       senderId: 'system',
       senderName: '',
-      text: targetType === 'channel' ? 'You unsubscribed from this channel' : 'You left the group',
+      text: (targetType as string) === 'channel' ? 'You unsubscribed from this channel' : 'You left the group',
       timestamp,
       dateStr: 'Today',
       isOutgoing: false,
@@ -510,7 +540,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }));
   };
 
-  const createNewChat = (name: string, type: Chat['type'], username?: string, description?: string, avatar?: string): Chat => {
+  const createNewChat = (name: string, type: ChatType, username?: string, description?: string, avatar?: string): Chat => {
     const creatorId = user?.id || 'user_me';
     const newChat: Chat = {
       id: `chat_${Date.now()}`, name, type,
