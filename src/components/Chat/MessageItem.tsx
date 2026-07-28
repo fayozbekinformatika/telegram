@@ -62,6 +62,29 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   const renderFormattedText = (text: string) => {
     if (!text) return null;
 
+    const linkify = (str: string) => {
+      const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+      const splitStr = str.split(urlRegex);
+      return splitStr.map((part, i) => {
+        if (i % 2 === 1) {
+          const href = part.startsWith('www.') ? `http://${part}` : part;
+          return (
+            <a
+              key={i}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sky-500 hover:underline hover:text-sky-400 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {part}
+            </a>
+          );
+        }
+        return part;
+      });
+    };
+
     // Check code blocks ```code```
     if (text.startsWith('```') && text.endsWith('```')) {
       const codeContent = text.slice(3, -3).trim();
@@ -100,13 +123,13 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 </span>
               );
             }
-            return part;
+            return linkify(part);
           })}
         </span>
       );
     }
 
-    return <span className="whitespace-pre-wrap leading-relaxed">{text}</span>;
+    return <span className="whitespace-pre-wrap leading-relaxed">{linkify(text)}</span>;
   };
 
   return (
