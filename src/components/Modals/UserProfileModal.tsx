@@ -33,7 +33,7 @@ const knownUserProfiles: Record<string, { name: string; username?: string; avata
 };
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, user }) => {
-  const { theme, globalUsers, toggleMute, leaveChat, joinChat, chats, startChatWithUser } = useTelegram();
+  const { theme, globalUsers, toggleMute, leaveChat, joinChat, chats, startChatWithUser, startCall } = useTelegram();
   const { showToast } = useToast();
   const { user: authUser, updateUserProfile } = useAuth();
   
@@ -734,6 +734,47 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             {isGroupOrChannel ? `${membersList.length} ${membersList.length === 1 ? 'member' : 'members'}` : (displayUser.status || 'online')}
           </p>
 
+          {/* User Action Buttons (Call, Message, Mute) */}
+          {!isGroupOrChannel && displayUser.id !== authUser?.id && (
+            <div className="flex items-center justify-center gap-6 w-full pt-2 pb-1">
+              <button
+                onClick={() => {
+                   startCall(displayUser.name, displayUser.avatar, false);
+                   handleClose();
+                }}
+                className="flex flex-col items-center gap-1.5 text-white/80 hover:text-white transition-colors group cursor-pointer"
+              >
+                <div className="p-2.5 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                  <Phone className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-medium">Call</span>
+              </button>
+
+              <button
+                onClick={() => {
+                   startChatWithUser(displayUser);
+                   handleClose();
+                }}
+                className="flex flex-col items-center gap-1.5 text-white/80 hover:text-white transition-colors group cursor-pointer"
+              >
+                <div className="p-2.5 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-medium">Message</span>
+              </button>
+
+              <button
+                onClick={() => showToast("Mute settings updated")}
+                className="flex flex-col items-center gap-1.5 text-white/80 hover:text-white transition-colors group"
+              >
+                <div className="p-2.5 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                  <BellOff className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-medium">Mute</span>
+              </button>
+            </div>
+          )}
+
           {/* Group Action Buttons (Mute, Manage, Leave, More) */}
           {isGroupOrChannel && (
             <div className="flex items-center justify-center gap-6 w-full pt-2 pb-1">
@@ -929,14 +970,27 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                 </div>
               )}
 
-              <div className="flex items-center justify-between cursor-pointer group">
+              <div 
+                className="flex items-center justify-between cursor-pointer group"
+                onClick={() => {
+                  navigator.clipboard.writeText(`@${displayUser.username || 'fayozchek'}`);
+                  showToast('Link copied to clipboard.');
+                }}
+              >
                 <div className="flex flex-col">
                   <span className="text-[15px] text-sky-400 font-medium group-hover:underline">
                     @{displayUser.username || 'fayozchek'}
                   </span>
                   <span className={`text-[13px] ${textSub}`}>Username</span>
                 </div>
-                <button className={`p-2 rounded-lg transition-colors ${isLight ? 'hover:bg-slate-100' : 'hover:bg-[#202b36]'}`}>
+                <button 
+                  className={`p-2 rounded-lg transition-colors ${isLight ? 'hover:bg-slate-100' : 'hover:bg-[#202b36]'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(`https://t.me/${displayUser.username || 'fayozchek'}`);
+                    showToast('Link copied to clipboard.');
+                  }}
+                >
                   <QrCode className="w-6 h-6 text-sky-400" />
                 </button>
               </div>

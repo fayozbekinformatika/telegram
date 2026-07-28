@@ -14,7 +14,17 @@ export const CallWindowModal: React.FC = () => {
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    if (!activeCall) return;
+    if (!activeCall) {
+      // Reset call duration when active call is cleared
+      setCallDuration(0);
+      setCallState('ringing');
+      return;
+    }
+
+    setCallDuration(0);
+    setCallState('ringing');
+    setIsVideoOn(activeCall.isVideo || false);
+    setIsMuted(false);
 
     // Start ringing
     const audio = new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg');

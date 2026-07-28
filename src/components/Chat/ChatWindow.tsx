@@ -201,10 +201,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
             <p className={`text-[11px] sm:text-xs truncate font-medium ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
               {activeChat.type === 'group' || activeChat.type === 'channel' ? (
                 `${activeChat.membersCount || 1} members`
-              ) : activeChat.isOnline ? (
+              ) : (activeChat.isOnline || getOtherUser(activeChat.id)?.status === 'online') ? (
                 <span className="text-sky-500">online</span>
               ) : (
-                'last seen recently'
+                getOtherUser(activeChat.id)?.status || 'last seen recently'
               )}
             </p>
           </div>
