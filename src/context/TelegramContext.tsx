@@ -193,15 +193,26 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [chats, messages, theme, chatWallpaper, user]);
 
   const startChatWithUser = (targetUser: User) => {
-    if (!user) return;
-    const sortedIds = [user.id, targetUser.id].sort().join('_');
-    const chatId = `private_${sortedIds}`;
-    const existing = chats.find(c => c.id === chatId);
+    const currentUserId = user?.id || 'user_me';
+    const chatId = `private_${currentUserId}_${targetUser.id}`;
+    
+    const existing = chats.find(c => 
+      c.id === chatId || 
+      c.id === `private_${targetUser.id}_${currentUserId}` ||
+      (c.type === 'private' && (
+        (c.participantIds && c.participantIds.includes(currentUserId) && c.participantIds.includes(targetUser.id)) ||
+        (c.memberIds && c.memberIds.includes(currentUserId) && c.memberIds.includes(targetUser.id)) ||
+        (c.username && targetUser.username && c.username.toLowerCase() === targetUser.username.toLowerCase()) ||
+        c.id === targetUser.id
+      ))
+    );
+    
     if (existing) {
-      setActiveChatId(chatId);
+      setActiveChatId(existing.id);
       setSearchQuery('');
       return;
     }
+
     const newChat: Chat = {
       id: chatId,
       name: targetUser.name,
@@ -209,17 +220,45 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       avatar: targetUser.avatar,
       username: targetUser.username,
       unreadCount: 0,
-      description: targetUser.bio || 'Say hi!'
+      description: targetUser.bio || 'Say hi!',
+      participantIds: [currentUserId, targetUser.id],
+      memberIds: [currentUserId, targetUser.id],
+      folderIds: ['all', 'personal']
     };
+
     setChats(prev => [newChat, ...prev]);
+    setMessages(prev => ({ ...prev, [chatId]: prev[chatId] || [] }));
     setActiveChatId(chatId);
     setSearchQuery('');
   };
 
   const sendMessage = (chatId: string, text: string, mediaType?: Message['mediaType'], mediaUrl?: string, poll?: Poll, replyToId?: string) => {
-    const targetChat = chats.find(c => c.id === chatId);
+    const currentUserId = user?.id || 'user_me';
+    let targetChat = chats.find(c => c.id === chatId);
+
+    if (!targetChat) {
+      let targetUser = globalUsers[chatId];
+      if (!targetUser) {
+        targetUser = Object.values(globalUsers).find(u => chatId.includes(u.id));
+      }
+      const chatName = targetUser ? targetUser.name : 'User';
+      const avatar = targetUser ? targetUser.avatar : `https://api.dicebear.com/7.x/identicon/svg?seed=${chatId}`;
+      const username = targetUser ? targetUser.username : undefined;
+
+      targetChat = {
+        id: chatId,
+        name: chatName,
+        type: 'private',
+        avatar,
+        username,
+        unreadCount: 0,
+        participantIds: [currentUserId, chatId],
+        memberIds: [currentUserId, chatId],
+        folderIds: ['all', 'personal']
+      };
+    }
+
     if (targetChat && targetChat.type === 'channel') {
-      const currentUserId = user?.id || 'user_me';
       const myIds = [currentUserId, 'user_me'];
       const isOwnerOrAdmin = Boolean(
         (targetChat.creatorId && myIds.includes(targetChat.creatorId)) ||
@@ -233,7 +272,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const newMsg: Message = {
       id: `m_${Date.now()}`,
       chatId,
-      senderId: user?.id || 'user_me',
+      senderId: currentUserId,
       senderName: user?.name || 'You',
       senderAvatar: user?.avatar,
       text,
@@ -247,8 +286,22 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       poll,
       replyToMessageId: replyToId
     };
+
     setMessages(prev => ({ ...prev, [chatId]: [...(prev[chatId] || []), newMsg] }));
-    setChats(prev => prev.map(c => c.id === chatId ? { ...c, lastMessage: newMsg } : c));
+
+    setChats(prev => {
+      const exists = prev.some(c => c.id === chatId);
+      if (!exists && targetChat) {
+        return [{ ...targetChat, lastMessage: newMsg }, ...prev];
+      }
+      const updated = prev.map(c => c.id === chatId ? { ...c, lastMessage: newMsg } : c);
+      const chatIndex = updated.findIndex(c => c.id === chatId);
+      if (chatIndex > 0) {
+        const [moved] = updated.splice(chatIndex, 1);
+        return [moved, ...updated];
+      }
+      return updated;
+    });
   };
 
   const addReaction = (chatId: string, messageId: string, emoji: string) => {

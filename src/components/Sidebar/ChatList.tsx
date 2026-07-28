@@ -13,16 +13,22 @@ export const ChatList: React.FC = () => {
   const myIds = React.useMemo(() => [currentUser?.id, 'user_me'].filter(Boolean) as string[], [currentUser]);
 
   const filteredChats = chats.filter((chat) => {
-    if (chat.type === 'private') {
-      const ids = chat.id.replace('private_', '').split('_');
-      if (ids.length === 2) {
-        return false; // Legacy format
-      }
-      if (!currentUser || !ids.includes(currentUser.id)) {
-        return false; // Only show private chats where current user is a participant
+    if (chat.type === 'private' || chat.type === 'secret') {
+      if (chat.participantIds && chat.participantIds.length > 0) {
+        if (!myIds.some(id => chat.participantIds?.includes(id))) {
+          return false;
+        }
+      } else if (chat.memberIds && chat.memberIds.length > 0) {
+        if (!myIds.some(id => chat.memberIds?.includes(id))) {
+          return false;
+        }
+      } else if (chat.id.startsWith('private_')) {
+        if (currentUser && !myIds.some(id => chat.id.includes(id))) {
+          return false;
+        }
       }
     } else if (chat.type === 'group' || chat.type === 'channel') {
-      if (chat.memberIds && !myIds.some(id => chat.memberIds?.includes(id))) {
+      if (chat.memberIds && chat.memberIds.length > 0 && !myIds.some(id => chat.memberIds?.includes(id))) {
         return false;
       }
     }
@@ -59,13 +65,17 @@ export const ChatList: React.FC = () => {
   const searchGlobalUsers = React.useMemo(() => {
     if (!searchQuery.trim()) return [];
     return Object.values(globalUsers).filter(u => {
-      if (u.id === currentUser?.id) return false;
-      const sortedIds = currentUser ? [currentUser.id, u.id].sort().join('_') : '';
-      if (chats.some(c => c.id === `private_${sortedIds}`)) return false;
+      if (myIds.includes(u.id)) return false;
+      if (chats.some(c => c.type === 'private' && (
+        c.participantIds?.includes(u.id) ||
+        c.memberIds?.includes(u.id) ||
+        c.id.includes(u.id) ||
+        (c.username && u.username && c.username.toLowerCase() === u.username.toLowerCase())
+      ))) return false;
       const term = searchQuery.toLowerCase();
       return u.name.toLowerCase().includes(term) || u.username?.toLowerCase().includes(term);
     });
-  }, [searchQuery, globalUsers, chats, currentUser]);
+  }, [searchQuery, globalUsers, chats, myIds]);
 
   const searchGlobalGroups = React.useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -78,10 +88,20 @@ export const ChatList: React.FC = () => {
   }, [searchQuery, chats, myIds]);
 
   const getOtherUser = (chatId: string) => {
+    const chat = chats.find(c => c.id === chatId);
+    if (chat?.participantIds) {
+      const otherId = chat.participantIds.find(id => !myIds.includes(id));
+      if (otherId && globalUsers?.[otherId]) return globalUsers[otherId];
+    }
+    if (chat?.memberIds) {
+      const otherId = chat.memberIds.find(id => !myIds.includes(id));
+      if (otherId && globalUsers?.[otherId]) return globalUsers[otherId];
+    }
     if (chatId.startsWith('private_')) {
-      const ids = chatId.replace('private_', '').split('_');
-      const otherId = ids.find(id => id !== currentUser?.id) || ids[0];
-      return globalUsers?.[otherId];
+      const otherUser = Object.values(globalUsers || {}).find(
+        u => !myIds.includes(u.id) && chatId.includes(u.id)
+      );
+      if (otherUser) return otherUser;
     }
     return null;
   };

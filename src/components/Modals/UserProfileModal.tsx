@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, QrCode, ArrowLeft, Camera, User as UserIcon, Phone, AtSign, Megaphone, Bot, Palette, Gift, Plus, BellOff, Sliders, LogOut, MoreHorizontal, Image as ImageIcon, FileText, UserPlus } from 'lucide-react';
+import { X, QrCode, ArrowLeft, Camera, User as UserIcon, Phone, AtSign, Megaphone, Bot, Palette, Gift, Plus, BellOff, Sliders, LogOut, MoreHorizontal, Image as ImageIcon, FileText, UserPlus, MessageSquare } from 'lucide-react';
 import { User } from '../../types/telegram';
 import { useTelegram } from '../../context/TelegramContext';
 import { useToast } from '../../context/ToastContext';
@@ -33,7 +33,7 @@ const knownUserProfiles: Record<string, { name: string; username?: string; avata
 };
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, user }) => {
-  const { theme, globalUsers, toggleMute, leaveChat, joinChat, chats } = useTelegram();
+  const { theme, globalUsers, toggleMute, leaveChat, joinChat, chats, startChatWithUser } = useTelegram();
   const { showToast } = useToast();
   const { user: authUser, updateUserProfile } = useAuth();
   
@@ -907,6 +907,19 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
           ) : (
             /* User profile info */
             <div className="py-2 flex flex-col gap-3">
+              {displayUser.id !== authUser?.id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    startChatWithUser(displayUser);
+                    handleClose();
+                  }}
+                  className="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white font-medium text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer mb-2 active:scale-98"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Send Message</span>
+                </button>
+              )}
               {displayUser.email && (
                 <div className="flex flex-col">
                   <span className={`text-[15px] font-medium ${isLight ? 'text-slate-800' : 'text-gray-100'}`}>

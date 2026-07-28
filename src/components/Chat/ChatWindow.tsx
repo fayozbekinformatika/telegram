@@ -70,10 +70,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
   }, [activeChatId, chatMessages.length]);
 
   const getOtherUser = (chatId: string) => {
+    const chat = chats.find(c => c.id === chatId);
+    if (chat?.participantIds) {
+      const otherId = chat.participantIds.find(id => !myIds.includes(id));
+      if (otherId && globalUsers?.[otherId]) return globalUsers[otherId];
+    }
+    if (chat?.memberIds) {
+      const otherId = chat.memberIds.find(id => !myIds.includes(id));
+      if (otherId && globalUsers?.[otherId]) return globalUsers[otherId];
+    }
     if (chatId.startsWith('private_')) {
-      const ids = chatId.replace('private_', '').split('_');
-      const otherId = ids.find(id => id !== currentUser?.id) || ids[0];
-      return globalUsers?.[otherId];
+      const otherUser = Object.values(globalUsers || {}).find(
+        u => !myIds.includes(u.id) && chatId.includes(u.id)
+      );
+      if (otherUser) return otherUser;
     }
     return null;
   };
