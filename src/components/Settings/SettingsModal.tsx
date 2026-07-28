@@ -12,12 +12,14 @@ interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenPasscodeModal: () => void;
+  onOpenMyProfile?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
   onOpenPasscodeModal,
+  onOpenMyProfile,
 }) => {
   const { user } = useAuth();
   const { theme } = useTelegram();
@@ -70,7 +72,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="flex-1 overflow-y-auto no-scrollbar py-2">
           
           {/* Group 1 */}
-          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+          <div onClick={() => { if (onOpenMyProfile) { onClose(); onOpenMyProfile(); } else { showToast("Feature coming soon"); } }} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
             <UserIcon className={`w-5 h-5 mr-4 ${textSub}`} />
             <span className="text-[15px] flex-1">My Account</span>
           </div>

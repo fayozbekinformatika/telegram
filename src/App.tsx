@@ -13,6 +13,7 @@ import { StoryCreatorModal } from './components/Stories/StoryCreatorModal';
 import { CallWindowModal } from './components/Calls/CallWindowModal';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { PasscodeModal } from './components/Modals/PasscodeModal';
+import { UserProfileModal } from './components/Modals/UserProfileModal';
 import { NewChatModal } from './components/Modals/NewChatModal';
 import { PollCreateModal } from './components/Modals/PollCreateModal';
 import { MiniAppModal } from './components/Modals/MiniAppModal';
@@ -22,11 +23,12 @@ import { LoginScreen } from './components/Auth/LoginScreen';
 
 const TelegramMainApp: React.FC = () => {
   const { searchQuery, setSearchQuery, theme, activeChatId, searchInChatMode, setSearchInChatMode, joinChat, setActiveChatId, chats } = useTelegram();
-  const { lockApp, isPasscodeLocked, passcode, isAuthenticated } = useAuth();
+  const { lockApp, isPasscodeLocked, passcode, isAuthenticated, user } = useAuth();
   const { showToast } = useToast();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMyProfileOpen, setIsMyProfileOpen] = useState(false);
   const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState(false);
   const [isContactsModalOpen, setIsContactsModalOpen] = useState(false);
   const [isCallsModalOpen, setIsCallsModalOpen] = useState(false);
@@ -228,6 +230,13 @@ const TelegramMainApp: React.FC = () => {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onOpenPasscodeModal={() => setIsPasscodeModalOpen(true)}
+        onOpenMyProfile={() => setIsMyProfileOpen(true)}
+      />
+
+      <UserProfileModal
+        isOpen={isMyProfileOpen}
+        onClose={() => setIsMyProfileOpen(false)}
+        user={user}
       />
 
       {/* Passcode Configuration Modal */}
