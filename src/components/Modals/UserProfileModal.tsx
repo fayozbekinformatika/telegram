@@ -24,7 +24,6 @@ const knownUserProfiles: Record<string, { name: string; username?: string; avata
   user_me: { name: 'Fayozchek Yusubhonov', username: 'fayozchek', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80', status: 'online' },
   user_soliyev: { name: 'Soliyev Javlon', username: 'soliyev_j', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80', status: 'last seen 12 minutes ago' },
   user_sayida: { name: 'Sayida 🐚', username: 'sayida_s', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', status: 'online' },
-  user_kallmeryan: { name: 'kallmeryan', username: 'kallmeryan', avatar: 'https://ui-avatars.com/api/?name=K&background=a855f7&color=fff&font-size=0.4', status: 'last seen 2 hours ago' },
   user_deedo: { name: 'deedo', username: 'deedo_admin', avatar: 'https://ui-avatars.com/api/?name=D&background=ec4899&color=fff&font-size=0.4', status: 'online', role: 'owner' },
   user_tg_tips: { name: 'Telegram Tips', username: 'telegram', avatar: 'https://ui-avatars.com/api/?name=TT&background=000&color=fff&font-size=0.4', status: 'service notification' },
   user_islam: { name: '1slam', username: 'islam_owner', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', status: 'last seen 22 minutes ago', role: 'admin' },

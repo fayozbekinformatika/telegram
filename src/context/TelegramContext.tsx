@@ -48,6 +48,16 @@ interface TelegramContextType {
   startChatWithUser: (user: User) => void;
 }
 
+const REMOVED_CHAT_IDS = new Set([
+  "chat_sleepwalkers",
+  "chat_hitler",
+  "chat_satashkent_prep",
+  "chat_satashkent_bot",
+  "chat_feruzam",
+  "chat_izzatulloh",
+  "chat_kallmeryan"
+]);
+
 const TelegramContext = createContext<TelegramContextType | undefined>(undefined);
 
 export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -56,7 +66,8 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [chats, setChats] = useState<Chat[]>(() => {
     const saved = localStorage.getItem('tg_chats');
     const rawChats: Chat[] = saved ? JSON.parse(saved) : initialChats;
-    return rawChats.map(c => {
+    const filteredChats = rawChats.filter(c => !REMOVED_CHAT_IDS.has(c.id));
+    return filteredChats.map(c => {
       if ((c.type === 'group' || c.type === 'channel') && !c.memberIds) {
         return { ...c, memberIds: [] };
       }
@@ -73,7 +84,9 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
   const [messages, setMessages] = useState<Record<string, Message[]>>(() => {
     const saved = localStorage.getItem('tg_messages');
-    return saved ? JSON.parse(saved) : initialMessages;
+    const msgs: Record<string, Message[]> = saved ? JSON.parse(saved) : initialMessages;
+    REMOVED_CHAT_IDS.forEach(id => delete msgs[id]);
+    return msgs;
   });
   const [stories, setStories] = useState<Story[]>(initialStories);
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
@@ -110,6 +123,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       unsubMessages = onSnapshot(doc(db, 'telegram_clone', 'messages'), (docSnap) => {
         if (docSnap.exists()) {
            const data = docSnap.data() as Record<string, Message[]>;
+           REMOVED_CHAT_IDS.forEach(id => delete data[id]);
            const str = JSON.stringify(data);
            if (lastMessagesStr.current !== str) {
              lastMessagesStr.current = str;
@@ -124,7 +138,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (docSnap.exists()) {
            const data = docSnap.data().chats as Chat[];
            if (Array.isArray(data)) {
-             const normalized = data.map(c => {
+             const normalized = data.filter(c => !REMOVED_CHAT_IDS.has(c.id)).map(c => {
                if (c.type === 'group' || c.type === 'channel') {
                  if (!c.memberIds || !Array.isArray(c.memberIds)) {
                    return { ...c, memberIds: [] };
