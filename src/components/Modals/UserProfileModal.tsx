@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { X, QrCode, ArrowLeft, Camera, User as UserIcon, Phone, AtSign, Megaphone, Bot, Palette, Gift, Plus, BellOff, Sliders, LogOut, MoreHorizontal, Image as ImageIcon, FileText, UserPlus, MessageSquare } from 'lucide-react';
+import { X, QrCode, ArrowLeft, Camera, User as UserIcon, Phone, Video, AtSign, Megaphone, Bot, Palette, Gift, Plus, BellOff, Sliders, LogOut, MoreHorizontal, Image as ImageIcon, FileText, UserPlus, MessageSquare } from 'lucide-react';
 import { User } from '../../types/telegram';
 import { useTelegram } from '../../context/TelegramContext';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { EditGroupModal } from './EditGroupModal';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -49,6 +50,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
       : Boolean(activeChatOrUser.memberIds && myIds.some(id => activeChatOrUser.memberIds?.includes(id)))
   );
 
+  const isOwnerOrAdmin = liveChat && (
+    (liveChat.creatorId && myIds.includes(liveChat.creatorId)) ||
+    (liveChat.adminIds && liveChat.adminIds.some(id => myIds.includes(id)))
+  );
+
   const displayUser = selectedMemberUser 
     ? (selectedMemberUser.id === authUser?.id ? authUser : (globalUsers?.[selectedMemberUser.id] || selectedMemberUser))
     : (user?.id === authUser?.id ? authUser : (user?.id && globalUsers?.[user.id] ? globalUsers[user.id] : activeChatOrUser));
@@ -58,6 +64,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   const [editUsername, setEditUsername] = useState(displayUser?.username || '');
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeModal, setActiveModal] = useState<'none' | 'name' | 'username' | 'channel' | 'automation' | 'color' | 'birthday' | 'bio'>('none');
+  const [isEditGroupOpen, setIsEditGroupOpen] = useState(false);
   const [editBio, setEditBio] = useState(displayUser?.bio || '');
   const [activeProfileColor, setActiveProfileColor] = useState(displayUser?.profileColor || 'bg-blue-500');
   const [activeNameColor, setActiveNameColor] = useState(displayUser?.nameColor || 'bg-yellow-500');
@@ -691,9 +698,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={handleClose} />
-      <div className={`relative w-[360px] max-h-[85vh] rounded-xl shadow-2xl z-10 animate-in fade-in zoom-in-95 flex flex-col overflow-hidden ${bgModal}`}>
+    <>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={handleClose} />
+        <div className={`relative w-[360px] max-h-[85vh] rounded-xl shadow-2xl z-10 animate-in fade-in zoom-in-95 flex flex-col overflow-hidden ${bgModal}`}>
         
         {/* Top Controls */}
         <div className="absolute top-3 left-3 flex items-center gap-2 z-20">
@@ -791,32 +799,30 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                 <span className="text-xs font-medium">Mute</span>
               </button>
 
-              <button
-                onClick={() => showToast("Manage group settings")}
-                className="flex flex-col items-center gap-1.5 text-white/80 hover:text-white transition-colors group"
-              >
-                <div className="p-2.5 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
-                  <Sliders className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-medium">Manage</span>
-              </button>
+              {isOwnerOrAdmin && (
+                <button
+                  onClick={() => setIsEditGroupOpen(true)}
+                  className="flex flex-col items-center gap-1.5 text-white/80 hover:text-white transition-colors group"
+                >
+                  <div className="p-2.5 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+                    <Sliders className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-medium">Manage</span>
+                </button>
+              )}
 
               {isJoinedGroup ? (
                 <button
                   onClick={() => {
-                    const targetGroupId = liveChat?.id || user?.id;
-                    if (targetGroupId) {
-                      leaveChat(targetGroupId);
-                      showToast("Left group");
-                      handleClose();
-                    }
+                     startCall(displayUser.name, displayUser.avatar, true);
+                     handleClose();
                   }}
                   className="flex flex-col items-center gap-1.5 text-white/80 hover:text-white transition-colors group cursor-pointer"
                 >
                   <div className="p-2.5 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
-                    <LogOut className="w-5 h-5" />
+                    <Video className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-medium">Leave</span>
+                  <span className="text-xs font-medium">Video chat</span>
                 </button>
               ) : (
                 <button
@@ -999,5 +1005,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
         </div>
       </div>
     </div>
+    {liveChat && isEditGroupOpen && (
+      <EditGroupModal isOpen={isEditGroupOpen} onClose={() => setIsEditGroupOpen(false)} chat={liveChat} />
+    )}
+    </>
   );
 };

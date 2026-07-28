@@ -97,6 +97,12 @@ export interface Chat {
   secretChatKey?: string;
   creatorId?: string;
   adminIds?: string[];
+  participantIds?: string[];
+  isPublic?: boolean;
+  chatHistoryVisible?: boolean;
+  topicsEnabled?: boolean;
+  inviteLink?: string;
+  restrictSavingContent?: boolean;
 }
 
 export interface Story {

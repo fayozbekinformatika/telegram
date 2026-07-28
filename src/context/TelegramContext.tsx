@@ -19,6 +19,7 @@ interface TelegramContextType {
   pinMessage: (chatId: string, messageId: string) => void;
   markChatAsRead: (chatId: string) => void;
   createNewChat: (name: string, type: Chat['type'], username?: string, description?: string, avatar?: string) => Chat;
+  updateChat: (chatId: string, updates: Partial<Chat>) => void;
   clearHistory: (chatId: string) => void;
   leaveChat: (chatId: string) => void;
   joinChat: (chatId: string) => void;
@@ -527,6 +528,10 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return newChat;
   };
 
+  const updateChat = (chatId: string, updates: Partial<Chat>) => {
+    setChats(prev => prev.map(c => c.id === chatId ? { ...c, ...updates } : c));
+  };
+
   const addStory = (mediaUrl: string, caption?: string) => {
     setStories(prev => [{
       id: `story_${Date.now()}`, userId: user?.id || 'user_me', userName: user?.name || 'You',
@@ -556,7 +561,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   return (
     <TelegramContext.Provider value={{
-      chats, activeChatId, setActiveChatId, messages, sendMessage, addReaction, votePoll, deleteMessage, pinMessage, markChatAsRead, createNewChat, clearHistory, leaveChat, joinChat, toggleMute,
+      chats, activeChatId, setActiveChatId, messages, sendMessage, addReaction, votePoll, deleteMessage, pinMessage, markChatAsRead, createNewChat, updateChat, clearHistory, leaveChat, joinChat, toggleMute,
       folders, activeFolderId, setActiveFolderId, searchQuery, setSearchQuery, searchInChatMode, setSearchInChatMode,
       stories, addStory, activeStoryIndex, setActiveStoryIndex, theme, setTheme, chatWallpaper, setChatWallpaper, fontSize, setFontSize,
       activeCall, startCall, endCall, rewriteMessageWithAI, globalUsers, startChatWithUser
