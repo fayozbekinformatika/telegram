@@ -1,3 +1,4 @@
+import { isUserOnline } from "../../lib/time";
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Phone,
@@ -87,6 +88,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
     }
     return null;
   };
+
 
   const displayAvatar = activeChat?.type === 'private' ? (getOtherUser(activeChat.id)?.avatar || activeChat?.avatar) : activeChat?.avatar;
   const displayName = activeChat?.type === 'private' ? (getOtherUser(activeChat.id)?.name || activeChat?.name) : activeChat?.name;
@@ -201,10 +203,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenCreatePoll, onOpen
             <p className={`text-[11px] sm:text-xs truncate font-medium ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
               {activeChat.type === 'group' || activeChat.type === 'channel' ? (
                 `${activeChat.membersCount || 1} members`
-              ) : (activeChat.isOnline || getOtherUser(activeChat.id)?.status === 'online') ? (
+              ) : (activeChat.isOnline || isUserOnline(getOtherUser(activeChat.id))) ? (
                 <span className="text-sky-500">online</span>
               ) : (
-                getOtherUser(activeChat.id)?.status || 'last seen recently'
+                (getOtherUser(activeChat.id)?.status === 'service notification') ? 'service notification' : 'last seen recently'
               )}
             </p>
           </div>

@@ -23,20 +23,34 @@ interface GroupMember {
 
 const knownUserProfiles: Record<string, { name: string; username?: string; avatar?: string; status?: string; role?: string }> = {
   user_me: { name: 'Fayozchek Yusubhonov', username: 'fayozchek', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80', status: 'online' },
-  user_soliyev: { name: 'Soliyev Javlon', username: 'soliyev_j', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80', status: 'last seen 12 minutes ago' },
-  user_sayida: { name: 'Sayida 🐚', username: 'sayida_s', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', status: 'online' },
-  user_deedo: { name: 'deedo', username: 'deedo_admin', avatar: 'https://ui-avatars.com/api/?name=D&background=ec4899&color=fff&font-size=0.4', status: 'online', role: 'owner' },
+  user_soliyev: { name: 'Soliyev Javlon', username: 'soliyev_j', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80', status: 'last seen recently' },
+  user_sayida: { name: 'Sayida 🐚', username: 'sayida_s', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', status: 'last seen recently' },
+  user_deedo: { name: 'deedo', username: 'deedo_admin', avatar: 'https://ui-avatars.com/api/?name=D&background=ec4899&color=fff&font-size=0.4', status: 'last seen recently', role: 'owner' },
   user_tg_tips: { name: 'Telegram Tips', username: 'telegram', avatar: 'https://ui-avatars.com/api/?name=TT&background=000&color=fff&font-size=0.4', status: 'service notification' },
-  user_islam: { name: '1slam', username: 'islam_owner', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', status: 'last seen 22 minutes ago', role: 'admin' },
-  user_abdurahimov: { name: 'Yusuf Abdurahimov', username: 'yusuf_a', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', status: 'last seen 30 minutes ago' },
-  user_abdulloh: { name: 'Abdulloh', username: 'abdulloh_m', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150', status: 'last seen 1 hour ago' },
-  user_khanxadjayeva: { name: 'khanxadjayeva_m', username: 'khanxadjayeva', avatar: 'https://ui-avatars.com/api/?name=KM&background=059669&color=fff&font-size=0.4', status: 'last seen 4 hours ago' },
+  user_islam: { name: '1slam', username: 'islam_owner', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', status: 'last seen recently', role: 'admin' },
+  user_abdurahimov: { name: 'Yusuf Abdurahimov', username: 'yusuf_a', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', status: 'last seen recently' },
+  user_abdulloh: { name: 'Abdulloh', username: 'abdulloh_m', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150', status: 'last seen recently' },
+  user_khanxadjayeva: { name: 'khanxadjayeva_m', username: 'khanxadjayeva', avatar: 'https://ui-avatars.com/api/?name=KM&background=059669&color=fff&font-size=0.4', status: 'last seen recently' },
 };
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, user }) => {
   const { theme, globalUsers, toggleMute, leaveChat, joinChat, chats, startChatWithUser, startCall } = useTelegram();
   const { showToast } = useToast();
   const { user: authUser, updateUserProfile } = useAuth();
+  
+  const isUserOnline = (u: any) => {
+    if (!u) return false;
+    if (u.id === authUser?.id) return true;
+    if (u.lastSeen) {
+      const time = typeof u.lastSeen === 'string' ? parseInt(u.lastSeen, 10) : u.lastSeen;
+      if (!isNaN(time)) {
+        return (Date.now() - time) < 120000;
+      }
+    }
+    if (u.id === 'user_me') return true;
+    return false;
+  };
+
   
   const [selectedMemberUser, setSelectedMemberUser] = useState<User | null>(null);
 
@@ -364,7 +378,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                   <img src={displayUser.avatar || 'https://i.pravatar.cc/150'} alt="Avatar" className="w-full h-full rounded-full object-cover" />
                 </div>
                 <h3 className={`font-medium ${activeNameColor.replace('bg-', 'text-')}`}>{displayUser.name}</h3>
-                <span className="text-sky-500 text-sm">online</span>
+                <span className={`text-sm ${isUserOnline(displayUser) ? 'text-sky-500' : 'text-gray-400'}`}>{isUserOnline(displayUser) ? 'online' : (displayUser.status === 'service notification' ? 'service notification' : 'last seen recently')}</span>
               </div>
               
               <div className="flex flex-wrap gap-3 justify-center mb-6">
@@ -602,7 +616,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                 </div>
               </div>
               <h2 className={`text-lg font-medium mb-0.5 ${displayUser.nameColor ? displayUser.nameColor.replace('bg-', 'text-') : (displayUser.profileColor ? displayUser.profileColor.replace('bg-', 'text-') : '')}`}>{displayUser.name}</h2>
-              <p className="text-sm text-sky-400">online</p>
+              <p className={`text-sm ${isUserOnline(displayUser) ? 'text-sky-400' : 'text-gray-400'}`}>{isUserOnline(displayUser) ? 'online' : (displayUser.status === 'service notification' ? 'service notification' : 'last seen recently')}</p>
             </div>
 
             {/* Bio */}
@@ -739,7 +753,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
           </div>
           <h2 className="text-lg font-semibold text-white mb-0.5 text-center px-4 line-clamp-1">{displayUser.name}</h2>
           <p className="text-xs text-sky-300 mb-3">
-            {isGroupOrChannel ? `${membersList.length} ${membersList.length === 1 ? 'member' : 'members'}` : (displayUser.status || 'online')}
+            {isGroupOrChannel ? `${membersList.length} ${membersList.length === 1 ? 'member' : 'members'}` : (isUserOnline(displayUser) ? 'online' : (displayUser.status === 'service notification' ? 'service notification' : 'last seen recently'))}
           </p>
 
           {/* User Action Buttons (Call, Message, Mute) */}
@@ -917,7 +931,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                           username: member.username || member.name.toLowerCase().replace(/\s+/g, '_'),
                           avatar: member.avatar,
                           bio: member.id === authUser?.id ? authUser?.bio : 'Group member',
-                          status: member.status || 'online',
+                          status: isUserOnline(member) ? 'online' : (member.status === 'service notification' ? 'service notification' : 'last seen recently'),
                         } as User;
                       }
                       setSelectedMemberUser(u);
@@ -936,8 +950,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                         <span className={`text-sm font-medium truncate ${isLight ? 'text-slate-800' : 'text-gray-100'}`}>
                           {member.name}
                         </span>
-                        <span className={`text-xs ${member.status === 'online' ? 'text-sky-400 font-medium' : textSub}`}>
-                          {member.status || 'last seen recently'}
+                        <span className={`text-xs ${isUserOnline(member) ? 'text-sky-400 font-medium' : textSub}`}>
+                          {isUserOnline(member) ? 'online' : (member.status === 'service notification' ? 'service notification' : 'last seen recently')}
                         </span>
                       </div>
                     </div>

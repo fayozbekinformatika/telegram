@@ -12,6 +12,9 @@ import { StoryViewerModal } from './components/Stories/StoryViewerModal';
 import { StoryCreatorModal } from './components/Stories/StoryCreatorModal';
 import { CallWindowModal } from './components/Calls/CallWindowModal';
 import { SettingsModal } from './components/Settings/SettingsModal';
+import { NotificationsSettingsModal } from './components/Settings/NotificationsSettingsModal';
+import { PrivacySecuritySettingsModal } from './components/Settings/PrivacySecuritySettingsModal';
+import { ChatSettingsModal } from './components/Settings/ChatSettingsModal';
 import { PasscodeModal } from './components/Modals/PasscodeModal';
 import { UserProfileModal } from './components/Modals/UserProfileModal';
 import { NewChatModal } from './components/Modals/NewChatModal';
@@ -29,6 +32,9 @@ const TelegramMainApp: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMyProfileOpen, setIsMyProfileOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isPrivacySecurityOpen, setIsPrivacySecurityOpen] = useState(false);
+  const [isChatSettingsOpen, setIsChatSettingsOpen] = useState(false);
   const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState(false);
   const [isContactsModalOpen, setIsContactsModalOpen] = useState(false);
   const [isCallsModalOpen, setIsCallsModalOpen] = useState(false);
@@ -231,6 +237,27 @@ const TelegramMainApp: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)}
         onOpenPasscodeModal={() => setIsPasscodeModalOpen(true)}
         onOpenMyProfile={() => setIsMyProfileOpen(true)}
+        onOpenNotifications={() => setIsNotificationsOpen(true)}
+        onOpenPrivacySecurity={() => setIsPrivacySecurityOpen(true)}
+        onOpenChatSettings={() => setIsChatSettingsOpen(true)}
+      />
+
+      <NotificationsSettingsModal
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+        onBack={() => { setIsNotificationsOpen(false); setIsSettingsOpen(true); }}
+      />
+
+      <PrivacySecuritySettingsModal
+        isOpen={isPrivacySecurityOpen}
+        onClose={() => setIsPrivacySecurityOpen(false)}
+        onBack={() => { setIsPrivacySecurityOpen(false); setIsSettingsOpen(true); }}
+      />
+
+      <ChatSettingsModal
+        isOpen={isChatSettingsOpen}
+        onClose={() => setIsChatSettingsOpen(false)}
+        onBack={() => { setIsChatSettingsOpen(false); setIsSettingsOpen(true); }}
       />
 
       <UserProfileModal

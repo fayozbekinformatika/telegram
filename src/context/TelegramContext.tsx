@@ -37,6 +37,10 @@ interface TelegramContextType {
   setActiveStoryIndex: (index: number | null) => void;
   theme: ThemeMode;
   setTheme: (theme: ThemeMode) => void;
+  themeColor: string;
+  setThemeColor: (color: string) => void;
+  autoNightMode: string;
+  setAutoNightMode: (mode: string) => void;
   chatWallpaper: string;
   setChatWallpaper: (wallpaper: string) => void;
   fontSize: number;
@@ -96,6 +100,8 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchInChatMode, setSearchInChatMode] = useState<boolean>(false);
   const [theme, setTheme] = useState<ThemeMode>(() => (localStorage.getItem('tg_theme') as ThemeMode) || 'night');
+  const [themeColor, setThemeColor] = useState<string>(() => localStorage.getItem('tg_theme_color') || '#3390ec');
+  const [autoNightMode, setAutoNightMode] = useState<string>(() => localStorage.getItem('tg_auto_night') || 'System');
   const [chatWallpaper, setChatWallpaper] = useState<string>(() => localStorage.getItem('tg_wallpaper') || 'classic');
   const [fontSize, setFontSize] = useState<number>(15);
   const [activeCall, setActiveCall] = useState<{ isVideo: boolean; chatName: string; avatar?: string } | null>(null);
@@ -104,11 +110,13 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const isInitiated = useRef(false);
   const lastMessagesStr = useRef("");
   const lastChatsStr = useRef("");
+  const lastSavedMessagesStr = useRef("");
 
   useEffect(() => {
     let unsubMessages = () => {};
     let unsubChats = () => {};
     let unsubUsers = () => {};
+    let unsubSavedMessages = () => {};
 
     if (user && isFirebaseConfigured() && db) {
       // Save current user to global users collection
@@ -125,10 +133,17 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (docSnap.exists()) {
            const data = docSnap.data() as Record<string, Message[]>;
            REMOVED_CHAT_IDS.forEach(id => delete data[id]);
+           delete data['chat_saved']; // Ensure global data doesn't override local saved messages
            const str = JSON.stringify(data);
            if (lastMessagesStr.current !== str) {
              lastMessagesStr.current = str;
-             setMessages(data);
+             setMessages(prev => {
+                const result = { ...data };
+                if (prev['chat_saved']) {
+                    result['chat_saved'] = prev['chat_saved'];
+                }
+                return result;
+             });
            }
            messagesLoaded = true;
            isInitiated.current = true;
@@ -139,7 +154,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (docSnap.exists()) {
            const data = docSnap.data().chats as Chat[];
            if (Array.isArray(data)) {
-             const normalized = data.filter(c => !REMOVED_CHAT_IDS.has(c.id)).map(c => {
+             const normalized = data.filter(c => !REMOVED_CHAT_IDS.has(c.id) && c.id !== 'chat_saved').map(c => {
                if (c.type === 'group' || c.type === 'channel') {
                  if (!c.memberIds || !Array.isArray(c.memberIds)) {
                    return { ...c, memberIds: [] };
@@ -150,19 +165,51 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
              const str = JSON.stringify(normalized);
              if (lastChatsStr.current !== str) {
                lastChatsStr.current = str;
-               setChats(normalized);
+               setChats(prev => {
+                   const savedChat = prev.find(c => c.id === 'chat_saved');
+                   const result = [...normalized];
+                   if (savedChat) result.push(savedChat);
+                   return result;
+               });
              }
            }
         }
       }, (error) => handleFirestoreError(error, OperationType.GET, "telegram_clone/chats"));
 
+      unsubSavedMessages = onSnapshot(doc(db, 'telegram_clone', 'saved_messages_' + user.id), (docSnap) => {
+        if (docSnap.exists()) {
+           const savedMsgs = docSnap.data().messages || [];
+           const str = JSON.stringify(savedMsgs);
+           if (lastSavedMessagesStr.current !== str) {
+             lastSavedMessagesStr.current = str;
+             setMessages(prev => {
+                const result = { ...prev };
+                result['chat_saved'] = savedMsgs;
+                return result;
+             });
+           }
+        }
+      }, (error) => handleFirestoreError(error, OperationType.GET, "telegram_clone/saved_messages"));
+
       setTimeout(() => {
         if (!messagesLoaded) isInitiated.current = true;
       }, 2000);
-      return () => { unsubMessages(); unsubChats(); unsubUsers(); };
+      return () => { unsubMessages(); unsubChats(); unsubUsers(); unsubSavedMessages(); };
     } else {
       isInitiated.current = true;
       return () => {};
+    }
+  }, [user]);
+
+  // Heartbeat
+  useEffect(() => {
+    if (user && isFirebaseConfigured() && db) {
+      const interval = setInterval(() => {
+        setDoc(doc(db, 'telegram_clone', 'users'), { 
+          [user.id]: { lastSeen: Date.now(), status: 'online' } 
+        }, { merge: true }).catch(err => console.error(err));
+      }, 60000); // 1 minute
+      return () => clearInterval(interval);
     }
   }, [user]);
 
@@ -170,23 +217,39 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('tg_chats', JSON.stringify(chats));
     localStorage.setItem('tg_messages', JSON.stringify(messages));
     localStorage.setItem('tg_theme', theme);
+    localStorage.setItem('tg_theme_color', themeColor);
+    localStorage.setItem('tg_auto_night', autoNightMode);
     localStorage.setItem('tg_wallpaper', chatWallpaper);
+    
+    // Apply primary color globally
+    document.documentElement.style.setProperty('--tg-primary', themeColor);
     if (user && isFirebaseConfigured() && db && isInitiated.current) {
       const cleanChats = JSON.parse(JSON.stringify(chats));
       const cleanMessages = JSON.parse(JSON.stringify(messages));
       const cleanUser = JSON.parse(JSON.stringify(user));
 
-      const currentChatsStr = JSON.stringify(cleanChats);
-      const currentMessagesStr = JSON.stringify(cleanMessages);
+      const globalChats = cleanChats.filter((c: Chat) => c.id !== 'chat_saved');
+      const globalMessages = { ...cleanMessages };
+      const savedMessagesLocal = globalMessages['chat_saved'] || [];
+      delete globalMessages['chat_saved'];
+
+      const currentChatsStr = JSON.stringify(globalChats);
+      const currentMessagesStr = JSON.stringify(globalMessages);
+      const currentSavedMessagesStr = JSON.stringify(savedMessagesLocal);
 
       if (lastChatsStr.current !== currentChatsStr) {
         lastChatsStr.current = currentChatsStr;
-        setDoc(doc(db, 'telegram_clone', 'chats'), { chats: cleanChats }).catch(err => console.error(err));
+        setDoc(doc(db, 'telegram_clone', 'chats'), { chats: globalChats }).catch(err => console.error(err));
       }
       
       if (lastMessagesStr.current !== currentMessagesStr) {
         lastMessagesStr.current = currentMessagesStr;
-        setDoc(doc(db, 'telegram_clone', 'messages'), cleanMessages).catch(err => console.error(err));
+        setDoc(doc(db, 'telegram_clone', 'messages'), globalMessages).catch(err => console.error(err));
+      }
+
+      if (lastSavedMessagesStr.current !== currentSavedMessagesStr) {
+        lastSavedMessagesStr.current = currentSavedMessagesStr;
+        setDoc(doc(db, 'telegram_clone', 'saved_messages_' + user.id), { messages: savedMessagesLocal }).catch(err => console.error(err));
       }
 
       setDoc(doc(db, 'telegram_clone', 'users'), { [user.id]: cleanUser }, { merge: true }).catch(err => console.error(err));
@@ -593,7 +656,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     <TelegramContext.Provider value={{
       chats, activeChatId, setActiveChatId, messages, sendMessage, addReaction, votePoll, deleteMessage, pinMessage, markChatAsRead, createNewChat, updateChat, clearHistory, leaveChat, joinChat, toggleMute,
       folders, activeFolderId, setActiveFolderId, searchQuery, setSearchQuery, searchInChatMode, setSearchInChatMode,
-      stories, addStory, activeStoryIndex, setActiveStoryIndex, theme, setTheme, chatWallpaper, setChatWallpaper, fontSize, setFontSize,
+      stories, addStory, activeStoryIndex, setActiveStoryIndex, theme, setTheme, themeColor, setThemeColor, autoNightMode, setAutoNightMode, chatWallpaper, setChatWallpaper, fontSize, setFontSize,
       activeCall, startCall, endCall, rewriteMessageWithAI, globalUsers, startChatWithUser
     }}>
       {children}

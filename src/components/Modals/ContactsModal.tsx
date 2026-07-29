@@ -109,8 +109,8 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({ isOpen, onClose })
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-[15px] truncate">{contact.name}</h3>
-                <p className={`text-[13px] ${i % 3 === 0 ? 'text-sky-500' : textSub}`}>
-                  {i % 3 === 0 ? 'online' : `last seen ${i * 2 + 1} minutes ago`}
+                <p className={`text-[13px] ${textSub}`}>
+                  {'last seen recently'}
                 </p>
               </div>
             </div>

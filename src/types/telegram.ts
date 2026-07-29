@@ -12,7 +12,7 @@ export interface User {
   isBot?: boolean;
   isPremium?: boolean;
   status?: UserStatus;
-  lastSeen?: string;
+  lastSeen?: number | string;
   profileColor?: string;
   nameColor?: string;
   birthday?: string;

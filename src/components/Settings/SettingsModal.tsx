@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   User as UserIcon, Bell, Lock, MessageCircle, Folder, Settings2, 
   Video, Battery, Languages, Star, Briefcase, Gift, HelpCircle, 
-  Search, MoreVertical, X, Check, ScanLine, CreditCard
+  Search, MoreVertical, X, Check, ScanLine, CreditCard, LogOut, Pencil
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTelegram } from '../../context/TelegramContext';
@@ -13,6 +13,9 @@ interface SettingsModalProps {
   onClose: () => void;
   onOpenPasscodeModal: () => void;
   onOpenMyProfile?: () => void;
+  onOpenNotifications?: () => void;
+  onOpenPrivacySecurity?: () => void;
+  onOpenChatSettings?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -20,10 +23,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   onOpenPasscodeModal,
   onOpenMyProfile,
+  onOpenNotifications,
+  onOpenPrivacySecurity,
+  onOpenChatSettings,
 }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { theme } = useTelegram();
   const { showToast } = useToast();
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   if (!isOpen) return null;
 
@@ -45,7 +52,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <h2 className="text-[17px] font-medium">Settings</h2>
             <div className="flex items-center gap-3">
               <button onClick={() => showToast("Search settings...")} className="hover:bg-black/10 p-1.5 rounded-full transition-colors"><Search className="w-5 h-5" /></button>
-              <button onClick={() => showToast("More options")} className="hover:bg-black/10 p-1.5 rounded-full transition-colors"><MoreVertical className="w-5 h-5" /></button>
+              <div className="relative">
+                <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="hover:bg-black/10 p-1.5 rounded-full transition-colors"><MoreVertical className="w-5 h-5" /></button>
+                {showMoreMenu && (
+                  <div className={`absolute right-0 top-full mt-1 w-48 rounded-lg shadow-xl z-50 overflow-hidden ${isLight ? 'bg-white border border-slate-200' : 'bg-[#2b3541] border border-black/20'}`}>
+                    <div 
+                      className={`flex items-center px-4 py-3 cursor-pointer ${isLight ? 'hover:bg-slate-100 text-slate-800' : 'hover:bg-black/20 text-white'}`}
+                      onClick={() => {
+                        setShowMoreMenu(false);
+                        if (onOpenMyProfile) {
+                          onClose();
+                          onOpenMyProfile();
+                        }
+                      }}
+                    >
+                      <Pencil className="w-4 h-4 mr-3 opacity-70" />
+                      <span className="text-[14px]">Edit profile</span>
+                    </div>
+                    <div 
+                      className={`flex items-center px-4 py-3 cursor-pointer ${isLight ? 'hover:bg-slate-100 text-red-500' : 'hover:bg-black/20 text-red-400'}`}
+                      onClick={() => {
+                        setShowMoreMenu(false);
+                        logout();
+                        onClose();
+                      }}
+                    >
+                      <LogOut className="w-4 h-4 mr-3 opacity-70" />
+                      <span className="text-[14px]">Log out</span>
+                    </div>
+                  </div>
+                )}
+                {/* Invisible overlay to close menu */}
+                {showMoreMenu && (
+                  <div className="fixed inset-0 z-40" onClick={() => setShowMoreMenu(false)} />
+                )}
+              </div>
               <button onClick={onClose} className="hover:bg-black/10 p-1.5 rounded-full transition-colors"><X className="w-5 h-5" /></button>
             </div>
           </div>
@@ -76,15 +117,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <UserIcon className={`w-5 h-5 mr-4 ${textSub}`} />
             <span className="text-[15px] flex-1">My Account</span>
           </div>
-          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+          <div onClick={() => { if (onOpenNotifications) { onClose(); onOpenNotifications(); } else { showToast("Feature coming soon"); } }} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
             <Bell className={`w-5 h-5 mr-4 ${textSub}`} />
             <span className="text-[15px] flex-1">Notifications and Sounds</span>
           </div>
-          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+          <div onClick={() => { if (onOpenPrivacySecurity) { onClose(); onOpenPrivacySecurity(); } else { showToast("Feature coming soon"); } }} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
             <Lock className={`w-5 h-5 mr-4 ${textSub}`} />
             <span className="text-[15px] flex-1">Privacy and Security</span>
           </div>
-          <div onClick={(e) => showToast(e.currentTarget.textContent || "Feature coming soon")} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
+          <div onClick={() => { if (onOpenChatSettings) { onClose(); onOpenChatSettings(); } else { showToast("Feature coming soon"); } }} className="flex items-center px-5 py-3 hover:bg-black/5 cursor-pointer transition-colors">
             <MessageCircle className={`w-5 h-5 mr-4 ${textSub}`} />
             <span className="text-[15px] flex-1">Chat Settings</span>
           </div>

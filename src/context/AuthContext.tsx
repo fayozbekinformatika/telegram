@@ -104,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         bio: `Authenticated via Google (${email})`,
         isVerified: true,
         isPremium: true,
-        status: 'online',
+        status: 'online', lastSeen: Date.now(),
       };
       setUser(newUser);
     }
@@ -127,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           bio: `Authenticated via Google`,
           isVerified: true,
           isPremium: true,
-          status: 'online',
+          status: 'online', lastSeen: Date.now(),
         };
         setUser(newUser);
       } else {
@@ -155,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 bio: `Authenticated via Google`,
                 isVerified: true,
                 isPremium: true,
-                status: 'online',
+                status: 'online', lastSeen: Date.now(),
               };
            });
         }
